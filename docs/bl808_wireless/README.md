@@ -6,6 +6,7 @@ Placa alvo: Sipeed M1s Dock. Documentação em português.
 
 Análise de viabilidade detalhada: [analise-wifi.md](analise-wifi.md).
 Gravação e depuração: [gravacao-e-depuracao.md](gravacao-e-depuracao.md).
+Pendências e próximos passos: [pendencias.md](pendencias.md).
 
 ## Situação por protocolo
 
