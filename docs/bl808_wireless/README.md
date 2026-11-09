@@ -7,6 +7,8 @@ Placa alvo: Sipeed M1s Dock. Documentação em português.
 Análise de viabilidade detalhada: [analise-wifi.md](analise-wifi.md).
 Gravação e depuração: [gravacao-e-depuracao.md](gravacao-e-depuracao.md).
 Pendências e próximos passos: [pendencias.md](pendencias.md).
+Vault do Obsidian e grafo do código (graphify): repositório
+[luccasmarchetti/bl809](https://github.com/LuccasMarchetti/bl809/tree/ccr-2d4283a6-izjhvt).
 
 ## Situação por protocolo
 
