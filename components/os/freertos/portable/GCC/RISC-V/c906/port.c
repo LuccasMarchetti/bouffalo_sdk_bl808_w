@@ -36,6 +36,7 @@
 
 /* Standard includes. */
 #include "string.h"
+#include "portVector.h"
 
 #ifdef configCLINT_BASE_ADDRESS
 	#warning The configCLINT_BASE_ADDRESS constant has been deprecated.  configMTIME_BASE_ADDRESS and configMTIMECMP_BASE_ADDRESS are currently being derived from the (possibly 0) configCLINT_BASE_ADDRESS setting.  Please update to define configMTIME_BASE_ADDRESS and configMTIMECMP_BASE_ADDRESS dirctly in place of configCLINT_BASE_ADDRESS.  See https://www.freertos.org/Using-FreeRTOS-on-RISC-V.html
@@ -252,6 +253,12 @@ StackType_t *pxPortInitialiseStack( StackType_t * pxTopOfStack, TaskFunction_t p
     *(--stk)  = (uintptr_t)0x0404040404040404L;       /* X4          */
     *(--stk)  = (uintptr_t)gp;                        /* X3          */
     *(--stk)  = (uintptr_t)0xFFFFFFFFFFFFFFFEL;       /* X1          */
+
+#if portHAS_VECTOR
+    /* Vector state (see portVector.h): all zero, vstart included */
+    stk -= portVECTOR_FRAME_SIZE / sizeof(StackType_t);
+    memset(stk, 0, portVECTOR_FRAME_SIZE);
+#endif
 
     return stk;
 }

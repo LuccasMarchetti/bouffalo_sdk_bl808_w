@@ -72,6 +72,60 @@
 #endif
 
 #include "freertos_risc_v_chip_specific_extensions.h"
+#include "portVector.h"
+
+#if portHAS_VECTOR
+/* Push the vector state below sp. Uses t0-t2, which must already be saved. */
+.macro portSAVE_VECTOR
+    addi    sp, sp, -portVECTOR_FRAME_SIZE
+    csrr    t0, 0xC20                 /* vl */
+    sd      t0, portVECTOR_VL_OFFSET(sp)
+    csrr    t0, 0xC21                 /* vtype */
+    sd      t0, portVECTOR_VTYPE_OFFSET(sp)
+    csrr    t0, 0x008                 /* vstart */
+    sd      t0, portVECTOR_VSTART_OFFSET(sp)
+    csrr    t0, 0x009                 /* vxsat */
+    sd      t0, portVECTOR_VXSAT_OFFSET(sp)
+    csrr    t0, 0x00A                 /* vxrm */
+    sd      t0, portVECTOR_VXRM_OFFSET(sp)
+    csrw    0x008, zero
+    li      t1, portVECTOR_GROUP_BYTES
+    portVSETVLI zero, t1, e8, m8
+    mv      t2, sp
+    portVSE v0, (t2)
+    add     t2, t2, t1
+    portVSE v8, (t2)
+    add     t2, t2, t1
+    portVSE v16, (t2)
+    add     t2, t2, t1
+    portVSE v24, (t2)
+.endm
+
+/* Pop the vector state pushed by portSAVE_VECTOR. Uses t0-t2. */
+.macro portRESTORE_VECTOR
+    csrw    0x008, zero
+    li      t1, portVECTOR_GROUP_BYTES
+    portVSETVLI zero, t1, e8, m8
+    mv      t2, sp
+    portVLE v0, (t2)
+    add     t2, t2, t1
+    portVLE v8, (t2)
+    add     t2, t2, t1
+    portVLE v16, (t2)
+    add     t2, t2, t1
+    portVLE v24, (t2)
+    ld      t0, portVECTOR_VL_OFFSET(sp)
+    ld      t1, portVECTOR_VTYPE_OFFSET(sp)
+    portVSETVL zero, t0, t1
+    ld      t0, portVECTOR_VSTART_OFFSET(sp)
+    csrw    0x008, t0
+    ld      t0, portVECTOR_VXSAT_OFFSET(sp)
+    csrw    0x009, t0
+    ld      t0, portVECTOR_VXRM_OFFSET(sp)
+    csrw    0x00A, t0
+    addi    sp, sp, portVECTOR_FRAME_SIZE
+.endm
+#endif
 
 /* Check the freertos_risc_v_chip_specific_extensions.h and/or command line
 definitions. */
@@ -228,6 +282,9 @@ Mtspend_Handler:
 #else
     store_x      t0, (portWORD_SIZE * 14)(sp)
 #endif
+#if portHAS_VECTOR
+    portSAVE_VECTOR
+#endif
     la           a1, pxCurrentTCB
     load_x       a1, (a1)
     store_x      sp, (a1)
@@ -237,6 +294,9 @@ Mtspend_Handler:
     la      a1, pxCurrentTCB
     load_x      a1, (a1)
     load_x      sp, (a1)
+#if portHAS_VECTOR
+    portRESTORE_VECTOR
+#endif
 
 #if __riscv_xlen == 64
     li      t0, 0xe4000000
@@ -467,6 +527,9 @@ xPortStartFirstTask:
 	la      a0, pxCurrentTCB
     load_x      a0, (a0)
     load_x      sp, (a0)
+#if portHAS_VECTOR
+    portRESTORE_VECTOR
+#endif
 
     /* Run in machine mode */
     li      t0, MSTATUS_PRV1
