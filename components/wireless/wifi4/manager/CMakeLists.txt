@@ -32,6 +32,10 @@ sdk_add_compile_definitions(-DBL_CHIP_NAME="${CHIP}")
 
 if(("${CHIP}" STREQUAL "bl602"))
     sdk_add_compile_definitions(-DCFG_TXDESC=2)
+elseif(("${CHIP}" STREQUAL "bl808"))
+    # Must match the BL808 firmware blob's shared-memory layout (as in
+    # Zephyr's hal_bouffalolab wifi4 ipc_shared.h).
+    sdk_add_compile_definitions(-DCFG_TXDESC=4)
 endif()
 
 if(NOT DEFINED CONFIG_VIRT_DEV_MAX)

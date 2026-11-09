@@ -28,6 +28,26 @@ extern "C" {
  ****************************************************************************/
 
 #include "wifi_hosal.h"
+#include "bflb_pm.h"
+
+extern uint8_t bflb_efuse_is_mac_address_slot_empty(uint8_t slot, uint8_t reload);
+extern int bflb_efuse_read_mac_address_opt(uint8_t slot, uint8_t mac[6], uint8_t reload);
+
+/* Use the most recently programmed eFuse MAC slot (2, then 1, then the
+ * factory slot 0). */
+static int bl808_efuse_read_mac(uint8_t mac[6])
+{
+  for (int slot = 2; slot >= 0; slot--)
+    {
+      if (!bflb_efuse_is_mac_address_slot_empty(slot, 1) &&
+          bflb_efuse_read_mac_address_opt(slot, mac, 1) == 0)
+        {
+          return 0;
+        }
+    }
+
+  return -1;
+}
 
 /****************************************************************************
  * Definition
@@ -39,11 +59,9 @@ extern "C" {
 
 wifi_hosal_funcs_t g_wifi_hosal_funcs =
 {
-  .efuse_read_mac = hosal_wifi_ret_zero,
+  .efuse_read_mac = bl808_efuse_read_mac,
   .rf_turn_on = hosal_wifi_ret_zero,
   .rf_turn_off = hosal_wifi_ret_zero,
-  .adc_device_get = hosal_wifi_ret_zero,
-  .adc_tsen_value_get = hosal_wifi_ret_zero,
   .pm_init = bl_pm_init,
   .pm_event_register = bl_pm_event_register,
   .pm_deinit = bl_pm_deinit,

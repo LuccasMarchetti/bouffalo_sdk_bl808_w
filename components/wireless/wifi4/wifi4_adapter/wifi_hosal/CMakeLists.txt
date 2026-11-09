@@ -9,5 +9,7 @@ sdk_library_add_sources(bflb_pm.c)
 
 if(("${CHIP}" STREQUAL "bl602"))
     sdk_library_add_sources(port/wifi_hosal_bl602.c)
+elseif(("${CHIP}" STREQUAL "bl808"))
+    sdk_library_add_sources(port/wifi_hosal_bl808.c)
 endif()
 

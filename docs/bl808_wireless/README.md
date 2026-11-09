@@ -11,7 +11,7 @@ Gravação e depuração: [gravacao-e-depuracao.md](gravacao-e-depuracao.md).
 
 | Protocolo | Binário disponível? | Situação neste fork |
 |---|---|---|
-| **Wi-Fi 4** | Sim (Pine64 / Zephyr) | Em andamento. Viável: a ABI bate com o M0 e faltam 3 símbolos. |
+| **Wi-Fi 4** | Sim (Pine64 / Zephyr) | Compila e linka no M0. Falta testar na placa. |
 | **BLE** | Sim (`libbl606p_btblecontroller_prebuild.a`, também usado pelo Zephyr no BL808) | Próxima etapa, depois do Wi-Fi. |
 | **Zigbee / Thread (802.15.4)** | **Não** | Bloqueado. Ver abaixo. |
 
@@ -79,12 +79,60 @@ Pontos de atenção levantados no Zephyr:
 - **TX:** o binário exige `status_addr` válido em todo descritor de TX.
 - **Compilação:** o binário precisa de `-fcommon`.
 
-Etapas:
+## Como compilar (Wi-Fi no M0)
+
+```sh
+tools/bl808_wireless/setup_toolchain.sh            # XuanTie GCC 2.6.1 (uma vez)
+export PATH="$HOME/.local/bouffalo-toolchain/xuantie-gcc-riscv-v2.6.1-linux-x86_64/bin:$PATH"
+tools/bl808_wireless/fetch_blobs.sh                # binários de Wi-Fi/BLE/PHY (uma vez)
+
+cd examples/wifi/sta/wifi_tcp
+make CHIP=bl808 BOARD=bl808dk CPU_ID=m0
+```
+
+O GCC 14.3 (release `default` da Bouffalo) **não** serve para este fork: ele
+não aceita as extensões T-Head no `-march` do BL808 e usa picolibc em vez de
+newlib. O `setup_toolchain.sh` baixa o XuanTie 2.6.1 do release `compact-old`,
+com verificação de SHA-256.
+
+Cristal do M1s Dock: o Zephyr usa o código de capacitor 50 (erro abaixo de
+1 ppm, contra cerca de 57 ppm sem ajuste). Para aplicar aqui, compile com
+`-DCONFIG_BL808_WIFI_XTAL_CAPCODE=50` (o padrão, 0, mantém o valor da eFuse).
+
+## O que foi feito
+
+| Arquivo | Mudança |
+|---|---|
+| `examples/wifi/defconfig` | BL808 usa `CONFIG_WIFI4`. |
+| `components/wireless/wifi4/firmware/CMakeLists.txt` | No BL808, liga o binário do BL808 (exige `CPU_ID=m0`), `-fcommon`, `CFG_CHIP_BL808`. |
+| `components/wireless/wifi4/manager/CMakeLists.txt` | `CFG_TXDESC=4`, que precisa bater com o layout de memória do binário. |
+| `components/wireless/wifi4/bl808_port/` (novo) | Clocks do MAC/PHY, limpeza da RAM do Wi-Fi, potência de TX, ajuste do cristal, símbolos que faltavam, contornos de bugs do binário (`--wrap` de `rc_update_counters`, `sta_mgmt_unregister`, `rfc_init`) e um `rfparam_init()` compatível com os exemplos. Adaptado do Zephyr. |
+| `components/wireless/wifi4/wifi4_adapter/` | Headers do BL808. IRQs `WIFI_IRQn` (70) e `WIFI_IPC_PUBLIC_IRQn` (79), iguais às do Zephyr. MAC lido da eFuse (antes devolvia zeros). |
+| `drivers/soc/bl808/phyrf/` (novo) | Liga o binário de PHY/RF. |
+| `bsp/board/bl808dk/bl808_flash_m0.ld` | Tabela `.wifi.cfg.entry`. Região `ram_wifi` de 84 KB no topo da WRAM (`0x22043000`), só quando o Wi-Fi é linkado. Correção da origem, que vinha do BL616 (`0x23038000`). Heap do lwIP na RAM normal. |
+
+O driver de Wi-Fi do SDK (`bl60x_wifi_driver`) **já tinha** os caminhos do
+BL808 (TX com cópia para buffers compartilhados, endereço dos registradores
+em `0x24000000`). Eles só nunca tinham sido ativados.
+
+Conferido no ELF gerado: a RAM do Wi-Fi fica em `0x22043000`–`0x22057e10`, e o
+heap termina em `0x62043000` (alias com cache do mesmo endereço), sem
+sobreposição. As chamadas do binário passam pelos `__wrap_*`.
+
+Sem Wi-Fi, o M0 continua igual: região do Wi-Fi vazia e heap com os 160 KB de
+WRAM. O `helloworld` compila no M0 e no D0.
+
+## Etapas
 
 1. [x] Download verificado dos binários.
-2. [ ] Opção `CONFIG_WIFI4` para `CHIP=bl808 CPU_ID=m0` no CMake/Kconfig.
-3. [ ] Porte de `bl808_port` (plataforma, IPC, RF) sobre FreeRTOS e LHAL.
-4. [ ] Linker script do M0 com as seções do Wi-Fi.
-5. [ ] Exemplo `examples/wifi/sta` para `bl808dk`/M1s Dock.
-6. [ ] Teste na placa: scan, conexão WPA2, DHCP, ping.
+2. [x] `CONFIG_WIFI4` para `CHIP=bl808 CPU_ID=m0`.
+3. [x] Porte da plataforma (`bl808_port`, hosal, IRQs, RF).
+4. [x] Linker script do M0 com as seções do Wi-Fi.
+5. [x] `examples/wifi/sta/wifi_tcp` compila e linka para o BL808 M0.
+6. [ ] **Teste na placa:** boot, `wifi_scan`, conexão WPA2, DHCP, ping. Ainda
+   **não testado no hardware.**
 7. [ ] BLE.
+8. [ ] Comando para gravar M0 e D0 de uma vez. Depuração pelo VS Code.
+
+Problema já existente no fork, sem relação com este trabalho: o exemplo de
+Wi-Fi do **BL602** não compila (`drivers/lhal/src/bflb_common.c:357`).

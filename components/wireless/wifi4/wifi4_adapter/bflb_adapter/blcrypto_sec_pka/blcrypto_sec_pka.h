@@ -1,6 +1,10 @@
 #ifndef BLCRYPTO_SEC_PKA_H_
 #define BLCRYPTO_SEC_PKA_H_
+#if defined(CFG_CHIP_BL808)
+#include <bl808_common.h>
+#else
 #include <bl602_common.h>
+#endif
 #include "hardware/sec_eng_reg.h"
 #include "bflb_sec_aes.h"
 #include "bflb_sec_pka.h"

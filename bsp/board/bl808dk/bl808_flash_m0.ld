@@ -18,7 +18,9 @@ StackSize    = 0x0400; /*  1KB */
 HeapMinSize  = 0x1000; /*  4KB */
 psram_heap_min_size = 0x1000;
 __EM_SIZE = DEFINED(btble_controller_init) ? 32K : 0K;
-wifi_ram_max_size = 0K;
+/* Wi-Fi shared RAM (BL808 wifi4 blob: .fw.SHRAMIPC/.fw.SHRAM), only when the
+ * firmware is linked. 84K as in Zephyr's bl808_em_32kb_wifi.dtsi. */
+wifi_ram_max_size = DEFINED(wifi_main) ? 84K : 0K;
 
 remain_wifi_ram = 160K - wifi_ram_max_size - __EM_SIZE;
 
@@ -29,7 +31,8 @@ MEMORY
     ram_psram  (wxa)  : ORIGIN = 0x50000000, LENGTH = 64M
     ram_nocache (!rx) : ORIGIN = 0x22020400, LENGTH = 64K - 1K + remain_wifi_ram /* reserved 1k for security */
     ram_memory  (!rx) : ORIGIN = 0x62020400, LENGTH = 64K - 1K + remain_wifi_ram /* reserved 1k for security */
-    ram_wifi  (wxa)   : ORIGIN = 0x23038000 - wifi_ram_max_size - __EM_SIZE, LENGTH = wifi_ram_max_size
+    /* Top of the M0 WRAM (non-cacheable alias), below the BLE EM. */
+    ram_wifi  (wxa)   : ORIGIN = 0x22058000 - wifi_ram_max_size - __EM_SIZE, LENGTH = wifi_ram_max_size
     xram_memory  (!rx) : ORIGIN = 0x40000000, LENGTH = 16K
 }
 
@@ -54,6 +57,12 @@ SECTIONS
 
         *(.text)
         *(.text.*)
+
+        /* static fw attribute entry (Wi-Fi firmware config table) */
+        . = ALIGN(4);
+        _bl_static_fw_cfg_entry_start = .;
+        KEEP(*(.wifi.cfg.entry))
+        _bl_static_fw_cfg_entry_end = .;
 
         /* section information for shell */
         . = ALIGN(4);
@@ -268,6 +277,19 @@ SECTIONS
     PROVIDE( _sp_main = __StackTop);
     PROVIDE( _sp_base = __StackLimit);
 
+    /* Wi-Fi MAC shared memory. Not zeroed by startup code: the Wi-Fi port
+     * clears it before starting the firmware. */
+    .wifi_ram_region (NOLOAD) :
+    {
+        . = ALIGN(4096);
+        __wifi_ram_start = .;
+        KEEP(*(.fw.SHRAMIPC))
+        . = ALIGN(8);
+        KEEP(*(.fw.SHRAM))
+        . = ALIGN(16);
+        __wifi_ram_end = .;
+    } > ram_wifi
+
     .bss (NOLOAD) :
     {
         . = ALIGN(4);
@@ -275,6 +297,9 @@ SECTIONS
 
         *(.bss*)
         *(.sbss*)
+        /* lwIP heap/pools, placed in Wi-Fi RAM on BL602; BL808 copies TX
+         * frames into its own shared buffers, so normal RAM is fine. */
+        *(.wifi_ram*)
         *(COMMON)
 
         . = ALIGN(4);
@@ -332,5 +357,9 @@ SECTIONS
     ASSERT(__psram_limit - __psram_heap_base >= psram_heap_min_size, "psram heap region overflow")
  
     PROVIDE(__LD_CONFIG_EM_SEL = __EM_SIZE);
+
+    /* CFG FW used in code */
+    PROVIDE( _ld_bl_static_cfg_entry_start = _bl_static_fw_cfg_entry_start );
+    PROVIDE( _ld_bl_static_cfg_entry_end   = _bl_static_fw_cfg_entry_end );
 }
 

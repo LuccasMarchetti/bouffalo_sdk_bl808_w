@@ -1,6 +1,23 @@
 
 sdk_add_include_directories(include)
-sdk_add_static_library(lib/libfirmware.a)
+if("${CHIP}" STREQUAL "bl808")
+    # BL808 wifi4 MAC firmware (BL606P/BL808 e907fp build), not redistributed:
+    # run tools/bl808_wireless/fetch_blobs.sh to download it.
+    set(BL808_WIFI_FW_LIB ${BL_SDK_BASE}/components/wireless/bl808_blobs/lib/libbl606p_firmware_prebuild.a)
+    if(NOT EXISTS ${BL808_WIFI_FW_LIB})
+        message(FATAL_ERROR "BL808 Wi-Fi firmware blob not found: ${BL808_WIFI_FW_LIB}\n"
+                            "Run tools/bl808_wireless/fetch_blobs.sh first.")
+    endif()
+    if(NOT "${CPU_ID}" STREQUAL "m0")
+        message(FATAL_ERROR "BL808 Wi-Fi runs on the M0 core only (CPU_ID=m0).")
+    endif()
+    sdk_add_static_library(${BL808_WIFI_FW_LIB})
+    # The blob is built with -fcommon; its tentative definitions must merge.
+    sdk_add_compile_options(-fcommon)
+    sdk_add_compile_definitions(-DCFG_CHIP_BL808)
+else()
+    sdk_add_static_library(lib/libfirmware.a)
+endif()
 if(("${CHIP}" STREQUAL "bl602"))
 sdk_add_compile_definitions(-DCFG_BOUFFALO)
 sdk_add_compile_definitions(-DCFG_EMB)

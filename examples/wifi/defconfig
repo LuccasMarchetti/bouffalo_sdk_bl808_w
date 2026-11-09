@@ -13,6 +13,9 @@ CONFIG_PING          =y
 
 ifeq ($(CHIP),bl602)
     CONFIG_WIFI4=y
+else ifeq ($(CHIP),bl808)
+    # BL808 (M0): wifi4 MAC, prebuilt blobs from tools/bl808_wireless/fetch_blobs.sh
+    CONFIG_WIFI4=y
 else
     CONFIG_WIFI6=y
     CONFIG_MACSW_SELECT = default

@@ -7,7 +7,10 @@
 #include "platform_al.h"
 #include "stdbool.h"
 
-#ifdef CFG_CHIP_BL602 
+#if defined(CFG_CHIP_BL808)
+#include "bl808.h"
+#include "bl808_aon.h"
+#elif defined(CFG_CHIP_BL602)
 #include "bl602.h"
 #endif
 /* User defined wifi event handler */
