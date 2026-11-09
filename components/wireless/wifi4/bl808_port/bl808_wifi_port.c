@@ -1,8 +1,11 @@
 /*
  * BL808 (M0) platform glue for the wifi4 MAC firmware blob.
  *
+ * RF bring-up (clocks, Wi-Fi RAM, TX power, rfparam_init) lives in
+ * drivers/soc/bl808/phyrf/bl808_rf.c, shared with BLE.
+ *
  * Adapted from Zephyr's BL808 Wi-Fi support (soc/bflb/bl808/wifi/
- * bflb_wifi_platform.c and soc/bflb/bl808/bflb_rf.c, Apache-2.0,
+ * bflb_wifi_platform.c, Apache-2.0,
  * Copyright The Zephyr Project Contributors), which runs the same blob
  * (libbl606p_firmware_prebuild.a, pinevoice_smartspeaker_sdk@305dd9a) on the
  * Sipeed M1s Dock.
@@ -16,36 +19,6 @@
 
 #include "bflb_core.h"
 #include "bflb_irq.h"
-#include "bl808.h"
-#include "bl808_aon.h"
-#include "hardware/glb_reg.h"
-#include "rfparam_adapter.h"
-
-/* MAC core clock = WIFIPLL 80 MHz / (div + 1) = 40 MHz */
-#define BL808_GLB_WIFI_CFG0_OFFSET      0x3B0U
-#define BL808_GLB_WIFI_MAC_CORE_DIV_MSK 0xFU
-#define BL808_GLB_WIFI_MAC_CORE_DIV_40M 1U
-/* CGEN_CFG0 bit 7: Wi-Fi PHY clock (shared RF block, BLE depends on it) */
-#define BL808_GLB_CGEN_WIFI_PHY_MSK     (1U << 7)
-
-/* Crystal load capacitor code. 0 keeps whatever the boot ROM/eFuse set.
- * Zephyr uses 50 on the Sipeed M1s Dock (within 1 ppm, vs ~57 ppm off). */
-#ifndef CONFIG_BL808_WIFI_XTAL_CAPCODE
-#define CONFIG_BL808_WIFI_XTAL_CAPCODE 0
-#endif
-
-/* Per-rate TX power targets in dBm (Zephyr bl808.dtsi defaults). */
-static int8_t bl808_pwr_11b[4] = { 17, 17, 17, 17 };
-static int8_t bl808_pwr_11g[8] = { 15, 15, 15, 15, 15, 15, 15, 15 };
-static int8_t bl808_pwr_11n[8] = { 14, 14, 14, 14, 14, 14, 14, 14 };
-
-extern void trpc_update_power_11b(int8_t *pwr);
-extern void trpc_update_power_11g(int8_t *pwr);
-extern void trpc_update_power_11n(int8_t *pwr);
-
-/* Wi-Fi shared RAM bounds, from bl808_flash_m0.ld */
-extern uint8_t __wifi_ram_start[];
-extern uint8_t __wifi_ram_end[];
 
 /* struct wifi_bt_coex_ctx, normally provided by the BT controller blob.
  * A zeroed context leaves the Wi-Fi side in charge of the RF. Weak so the
@@ -82,66 +55,6 @@ void bl_gpio_output_set(uint8_t pin, uint8_t value)
 {
     (void)pin;
     (void)value;
-}
-
-static void bl808_wifi_clock_enable(void)
-{
-    uint32_t v;
-
-    v = getreg32(GLB_BASE + GLB_CGEN_CFG0_OFFSET);
-    putreg32(v | BL808_GLB_CGEN_WIFI_PHY_MSK, GLB_BASE + GLB_CGEN_CFG0_OFFSET);
-
-    v = getreg32(GLB_BASE + GLB_CGEN_CFG2_OFFSET);
-    putreg32(v | GLB_CGEN_S2_WIFI_MSK, GLB_BASE + GLB_CGEN_CFG2_OFFSET);
-
-    v = getreg32(GLB_BASE + BL808_GLB_WIFI_CFG0_OFFSET);
-    v = (v & ~BL808_GLB_WIFI_MAC_CORE_DIV_MSK) | BL808_GLB_WIFI_MAC_CORE_DIV_40M;
-    putreg32(v, GLB_BASE + BL808_GLB_WIFI_CFG0_OFFSET);
-}
-
-int rfparam_init(uint32_t base_addr, void *rf_para, uint32_t len)
-{
-    (void)base_addr;
-    (void)rf_para;
-    (void)len;
-
-    /* The blob's NOLOAD .fw.SHRAM / .fw.SHRAMIPC objects are not zeroed by
-     * the startup code. */
-    memset(__wifi_ram_start, 0, (size_t)(__wifi_ram_end - __wifi_ram_start));
-
-#if CONFIG_BL808_WIFI_XTAL_CAPCODE != 0
-    AON_Set_Xtal_CapCode(CONFIG_BL808_WIFI_XTAL_CAPCODE, CONFIG_BL808_WIFI_XTAL_CAPCODE);
-#endif
-
-    bl808_wifi_clock_enable();
-
-    trpc_update_power_11b(bl808_pwr_11b);
-    trpc_update_power_11g(bl808_pwr_11g);
-    trpc_update_power_11n(bl808_pwr_11n);
-
-    return 0;
-}
-
-/* RF calibration, called by the Wi-Fi (and BLE) blobs. The first one, at
- * bring-up, must not be preempted or the SoC hangs. Periodic recalibrations
- * while connected keep interrupts enabled, or the MAC stalls. */
-extern int __real_rfc_init(uint32_t xtal);
-
-int __wrap_rfc_init(uint32_t xtal)
-{
-    static bool booted;
-    uintptr_t flags = 0;
-    int r;
-
-    if (!booted) {
-        flags = bflb_irq_save();
-    }
-    r = __real_rfc_init(xtal);
-    if (!booted) {
-        bflb_irq_restore(flags);
-        booted = true;
-    }
-    return r;
 }
 
 /*

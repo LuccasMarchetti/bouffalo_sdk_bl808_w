@@ -15,6 +15,17 @@ ifeq ($(CHIP),bl602)
     CONFIG_ROMAPI =y
     CONFIG_BL_SDK =y
     CONFIG_BFLB_OTA =y
+else ifeq ($(CHIP),bl808)
+    # BL808: BLE only for now (the BL808 controller blob also has BR/EDR,
+    # not enabled or tested here). On BL808 this only selects the host role
+    # set: the controller is always the BL808 blob.
+    CONFIG_BTBLECONTROLLER_LIB =ble1m10s1bredr0
+    # Wi-Fi RAM + BLE EM leave ~14K of internal heap: use the PSRAM too.
+    CONFIG_PSRAM =y
+    CONFIG_BFLB_MTD =y
+    CONFIG_PARTITION =y
+    CONFIG_LITTLEFS =y
+    CONFIG_BT_SETTINGS =y
 else
     CONFIG_BTBLECONTROLLER_LIB =ble1m2s1bredr1
     CONFIG_BT_BREDR =y

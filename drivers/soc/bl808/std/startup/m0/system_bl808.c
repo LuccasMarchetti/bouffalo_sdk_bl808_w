@@ -114,7 +114,28 @@ void SystemInit(void)
     BL_WR_REG(GLB_BASE, GLB_UART_CFG1, 0xffffffff);
     BL_WR_REG(GLB_BASE, GLB_UART_CFG2, 0x0000ffff);
 
-    GLB_Set_EM_Sel(GLB_WRAM160KB_EM0KB);
+    /* Exchange Memory for the BLE controller: the linker reserves __EM_SIZE
+     * (32K when btble_controller_init is linked, see bl808_flash_m0.ld) at the
+     * top of WRAM. It must be selected before the controller initialises its
+     * heap, or btble_ke_mem_init corrupts its metadata (found by Zephyr). */
+    extern uint8_t __LD_CONFIG_EM_SEL[];
+    switch ((uintptr_t)__LD_CONFIG_EM_SEL) {
+        case 16 * 1024:
+            GLB_Set_EM_Sel(GLB_WRAM144KB_EM16KB);
+            break;
+        case 32 * 1024:
+            GLB_Set_EM_Sel(GLB_WRAM128KB_EM32KB);
+            break;
+        case 48 * 1024:
+            GLB_Set_EM_Sel(GLB_WRAM112KB_EM48KB);
+            break;
+        case 64 * 1024:
+            GLB_Set_EM_Sel(GLB_WRAM96KB_EM64KB);
+            break;
+        default:
+            GLB_Set_EM_Sel(GLB_WRAM160KB_EM0KB);
+            break;
+    }
 }
 
 void System_Post_Init(void)

@@ -6,8 +6,15 @@
 #include "bluetooth.h"
 #include "conn.h"
 #include "conn_internal.h"
+#if defined(BL702) || defined(BL602)
 #include "ble_lib_api.h"
 #include "bl602_glb.h"
+#elif defined(BL808)
+#include "btble_lib_api.h"
+#include "bl808_glb.h"
+#else
+#include "btble_lib_api.h"
+#endif
 #include "rfparam_adapter.h"
 
 #include "ble_cli_cmds.h"

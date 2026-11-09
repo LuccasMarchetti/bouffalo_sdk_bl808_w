@@ -12,7 +12,8 @@ Gravação e depuração: [gravacao-e-depuracao.md](gravacao-e-depuracao.md).
 | Protocolo | Binário disponível? | Situação neste fork |
 |---|---|---|
 | **Wi-Fi 4** | Sim (Pine64 / Zephyr) | Compila e linka no M0. Falta testar na placa. |
-| **BLE** | Sim (`libbl606p_btblecontroller_prebuild.a`, também usado pelo Zephyr no BL808) | Próxima etapa, depois do Wi-Fi. |
+| **BLE** | Sim (`libbl606p_btblecontroller_prebuild.a`, também usado pelo Zephyr no BL808) | Compila e linka no M0, sozinho ou junto com o Wi-Fi. Falta testar na placa. |
+| **Bluetooth Clássico (BR/EDR)** | O binário do BLE tem o código | Não ativado. |
 | **Zigbee / Thread (802.15.4)** | **Não** | Bloqueado. Ver abaixo. |
 
 ### Zigbee e Thread
@@ -107,9 +108,9 @@ O padrão, 0, mantém o valor da eFuse.
 | `examples/wifi/defconfig` | BL808 usa `CONFIG_WIFI4`. |
 | `components/wireless/wifi4/firmware/CMakeLists.txt` | No BL808, liga o binário do BL808 (exige `CPU_ID=m0`), `-fcommon`, `CFG_CHIP_BL808`. |
 | `components/wireless/wifi4/manager/CMakeLists.txt` | `CFG_TXDESC=4`, que precisa bater com o layout de memória do binário. |
-| `components/wireless/wifi4/bl808_port/` (novo) | Clocks do MAC/PHY, limpeza da RAM do Wi-Fi, potência de TX, ajuste do cristal, símbolos que faltavam, contornos de bugs do binário (`--wrap` de `rc_update_counters`, `sta_mgmt_unregister`, `rfc_init`) e um `rfparam_init()` compatível com os exemplos. Adaptado do Zephyr. |
+| `components/wireless/wifi4/bl808_port/` (novo) | Símbolos que o binário de Wi-Fi pede e contornos de bugs dele (`--wrap` de `rc_update_counters` e `sta_mgmt_unregister`). Adaptado do Zephyr. |
 | `components/wireless/wifi4/wifi4_adapter/` | Headers do BL808. IRQs `WIFI_IRQn` (70) e `WIFI_IPC_PUBLIC_IRQn` (79), iguais às do Zephyr. MAC lido da eFuse (antes devolvia zeros). |
-| `drivers/soc/bl808/phyrf/` (novo) | Liga o binário de PHY/RF. |
+| `drivers/soc/bl808/phyrf/` (novo) | Liga o binário de PHY/RF. `rfparam_init()` comum ao Wi-Fi e ao BLE: clock do PHY, ajuste do cristal e, conforme o que está linkado, RAM/clock/potência do Wi-Fi e `wl_init()` do BLE. `--wrap` de `rfc_init` (primeira calibração sem interrupções). `wl_api.h` do BL808 (Bouffalo, Apache-2.0, via HAL do Zephyr). |
 | `bsp/board/bl808dk/bl808_flash_m0.ld` | Tabela `.wifi.cfg.entry`. Região `ram_wifi` de 84 KB no topo da WRAM (`0x22043000`), só quando o Wi-Fi é linkado. Correção da origem, que vinha do BL616 (`0x23038000`). Heap do lwIP na RAM normal. |
 
 O driver de Wi-Fi do SDK (`bl60x_wifi_driver`) **já tinha** os caminhos do
@@ -123,6 +124,43 @@ sobreposição. As chamadas do binário passam pelos `__wrap_*`.
 Sem Wi-Fi, o M0 continua igual: região do Wi-Fi vazia e heap com os 160 KB de
 WRAM. O `helloworld` compila no M0 e no D0.
 
+## BLE
+
+| Arquivo | Mudança |
+|---|---|
+| `components/wireless/bluetooth/CMakeLists.txt` | No BL808, liga o binário do controlador BLE do BL808 (só `CPU_ID=m0`). |
+| `components/wireless/bluetooth/btblecontroller/bl808_port/` (novo) | API do AliOS (`aos_*`, filas e tarefas) sobre FreeRTOS, API antiga de interrupções (`bl_irq_*`), MAC da eFuse, e os nomes que diferem do host do SDK: `btble_controller_deinit` e `bt_onchiphci_handle_rx_acl` (no binário, `bt_onchiphci_hanlde_rx_acl`, com erro de grafia). Adaptado do Zephyr. |
+| `drivers/soc/bl808/std/startup/m0/system_bl808.c` | Seleciona a Exchange Memory (EM) do tamanho que o linker reservou: 32 KB com BLE. Antes ficava sempre em 0 KB, e o controlador corromperia o próprio heap. |
+| `bsp/board/bl808dk/board.c` | Com `CONFIG_PSRAM=y`, registra a PSRAM como heap do M0, limitada ao tamanho detectado na eFuse (32 ou 64 MB). |
+| `examples/btble/{peripheral,central,btble_cli}/main.c` | Chamam `rfparam_init()` também no BL808. |
+| `examples/wifi/coex/wifi_ble/` | Funciona no BL808: Wi-Fi + BLE, sem BR/EDR, com PSRAM. |
+
+Mapa de memória do M0, conferido nos ELFs gerados:
+
+| Imagem | RAM do Wi-Fi | EM do BLE | Fim do heap interno |
+|---|---|---|---|
+| Só Wi-Fi (`wifi_tcp`) | `0x22043000`, 84 KB | — | `0x62043000` |
+| Só BLE (`peripheral`) | — | `0x22050000`, 32 KB | `0x62050000` |
+| Wi-Fi + BLE (`wifi_ble`) | `0x2203b000`, 84 KB (o mesmo endereço do Zephyr) | `0x22050000`, 32 KB | `0x6203b000` (cerca de 14 KB livres, por isso a PSRAM) |
+
+Com a PSRAM registrada, o `kmalloc()` tenta a PSRAM **antes** da RAM interna,
+como no BL616. Isso dá mais memória, mas é mais lento.
+
+`CONFIG_BTBLECONTROLLER_LIB`, no BL808, só escolhe os papéis BLE ativados no
+host (central, periférico, observador...). O controlador é sempre o binário
+do BL808.
+
+Para testar:
+
+```sh
+cd examples/btble/peripheral       # ou central, btble_cli
+make CHIP=bl808 BOARD=bl808dk CPU_ID=m0
+make flash CHIP=bl808 CPU_ID=m0 COMX=/dev/ttyUSB1
+```
+
+O `peripheral` anuncia o dispositivo. Use um app como o nRF Connect no
+celular para ver o anúncio e conectar.
+
 ## Etapas
 
 1. [x] Download verificado dos binários.
@@ -132,7 +170,7 @@ WRAM. O `helloworld` compila no M0 e no D0.
 5. [x] `examples/wifi/sta/wifi_tcp` compila e linka para o BL808 M0.
 6. [ ] **Teste na placa:** boot, `wifi_scan`, conexão WPA2, DHCP, ping. Ainda
    **não testado no hardware.**
-7. [ ] BLE.
+7. [x] BLE compila e linka (sozinho e com Wi-Fi). [ ] Teste na placa.
 8. [x] Gravar M0 e D0 de uma vez (`tools/bl808_wireless/flash.sh`). Depuração
    pelo VS Code (`tools/bl808_wireless/vscode/`). Ver
    [gravacao-e-depuracao.md](gravacao-e-depuracao.md).

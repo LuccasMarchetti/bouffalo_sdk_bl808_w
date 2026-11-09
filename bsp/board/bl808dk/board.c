@@ -291,8 +291,27 @@ void board_init(void)
     //     *pDest++ = *pSrc++;
     // }
 
-    // heap_len = ((size_t)&__psram_limit - (size_t)&__psram_heap_base);
-    // pmem_init((void *)&__psram_heap_base, heap_len);
+    /* PSRAM heap for the M0 (as on BL616). Needed when Wi-Fi and BLE run
+     * together: their shared RAM and the BLE EM leave ~14K of OCRAM heap.
+     * kmalloc() tries PSRAM first once it is registered. The SDK's D0 linker
+     * script does not use PSRAM; a D0 program that does must not overlap. */
+    {
+        extern uint32_t __psram_heap_base;
+        extern uint32_t __psram_limit;
+        size_t psram_heap_len = ((size_t)&__psram_limit - (size_t)&__psram_heap_base);
+        bflb_efuse_device_info_type chip_info;
+        uintptr_t psram_end = 0x50000000;
+
+        /* The linker script assumes 64M; stay within the fitted part. */
+        bflb_efuse_get_device_info(&chip_info);
+        psram_end += (chip_info.psram_info == UHS_64MB_PSRAM) ? (64 << 20) : (32 << 20);
+        if ((uintptr_t)&__psram_heap_base + psram_heap_len > psram_end) {
+            psram_heap_len = psram_end - (uintptr_t)&__psram_heap_base;
+        }
+
+        mm_register_heap(MM_HEAP_PSRAM_0, "PSRAM", MM_ALLOCATOR_TLSF, &__psram_heap_base, psram_heap_len);
+        printf("  psram heap size: %d Kbyte\r\n", psram_heap_len / 1024);
+    }
 #endif
 
     bl_show_log();

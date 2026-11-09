@@ -21,6 +21,7 @@
 #elif defined(BL808)
 #include "btble_lib_api.h"
 #include "bl808_glb.h"
+#include "rfparam_adapter.h"
 #endif
 
 #include "ble_cli_cmds.h"
