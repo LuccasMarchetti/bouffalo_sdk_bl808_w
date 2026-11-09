@@ -1,0 +1,77 @@
+// BL808 (M1s Dock) — tarefas do VS Code.
+// Copie esta pasta para .vscode/ na raiz do SDK:  cp -r tools/bl808_wireless/vscode .vscode
+// O compilador (riscv64-unknown-elf-*) precisa estar no PATH: tools/bl808_wireless/setup_toolchain.sh
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "BL808: compilar M0",
+            "type": "shell",
+            "command": "make -C ${input:m0App} CHIP=bl808 BOARD=bl808dk CPU_ID=m0 ${input:extraConfig}",
+            "group": "build",
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "BL808: compilar D0",
+            "type": "shell",
+            "command": "make -C ${input:d0App} CHIP=bl808 BOARD=bl808dk CPU_ID=d0 ${input:extraConfig}",
+            "group": "build",
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "BL808: compilar M0 + D0",
+            "dependsOn": ["BL808: compilar M0", "BL808: compilar D0"],
+            "dependsOrder": "sequence",
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": []
+        },
+        {
+            // Antes: segure BOOT, aperte e solte RST, solte BOOT.
+            "label": "BL808: gravar M0 + D0",
+            "type": "shell",
+            "command": "tools/bl808_wireless/flash.sh --port ${input:port} --m0 ${input:m0App} --d0 ${input:d0App}",
+            "problemMatcher": []
+        },
+        {
+            "label": "BL808: gravar só M0",
+            "type": "shell",
+            "command": "tools/bl808_wireless/flash.sh --port ${input:port} --m0 ${input:m0App}",
+            "problemMatcher": []
+        },
+        {
+            "label": "BL808: gravar só D0",
+            "type": "shell",
+            "command": "tools/bl808_wireless/flash.sh --port ${input:port} --d0 ${input:d0App}",
+            "problemMatcher": []
+        },
+        {
+            // O firmware do M0 precisa ter sido compilado com CONFIG_BL808_JTAG=y.
+            "label": "BL808: OpenOCD M0",
+            "type": "shell",
+            "command": "tools/openocd/openocd -f tools/openocd/interface/${input:adapter}.cfg -f tools/openocd/target/tgt_e907.cfg -c 'gdb_port 3333'",
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": { "regexp": "^(Error):\\s+(.*)$", "severity": 1, "message": 2 },
+                "background": { "beginsPattern": "^Open On-Chip Debugger", "endsPattern": "Listening on port 3333" }
+            }
+        },
+        {
+            // O firmware do D0 precisa ter sido compilado com CONFIG_BL808_JTAG=y.
+            "label": "BL808: OpenOCD D0",
+            "type": "shell",
+            "command": "tools/openocd/openocd -f tools/openocd/interface/${input:adapter}.cfg -f tools/openocd/target/tgt_c906.cfg -c 'gdb_port 3334'",
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": { "regexp": "^(Error):\\s+(.*)$", "severity": 1, "message": 2 },
+                "background": { "beginsPattern": "^Open On-Chip Debugger", "endsPattern": "Listening on port 3334" }
+            }
+        }
+    ],
+    "inputs": [
+        { "id": "m0App", "type": "promptString", "description": "Exemplo do M0", "default": "examples/wifi/sta/wifi_tcp" },
+        { "id": "d0App", "type": "promptString", "description": "Exemplo do D0", "default": "examples/bl808_triplecore/helloworld_d0" },
+        { "id": "port", "type": "promptString", "description": "Porta serial (Linux: /dev/ttyUSB1; Windows: COM5)", "default": "/dev/ttyUSB1" },
+        { "id": "extraConfig", "type": "promptString", "description": "Opções extras (ex.: CONFIG_BL808_JTAG=y CONFIG_BL808_WIFI_XTAL_CAPCODE=50)", "default": "" },
+        { "id": "adapter", "type": "pickString", "description": "Adaptador JTAG", "options": ["ch347", "ft2232h", "ft2232d"], "default": "ch347" }
+    ]
+}

@@ -10,6 +10,12 @@
 #include "bl808_uhs_phy.h"
 #include "board.h"
 
+/* First of the four JTAG pins (see board_jtag_gpio_init()). */
+#ifndef CONFIG_BL808_JTAG_PIN_BASE
+#define CONFIG_BL808_JTAG_PIN_BASE 4
+#endif
+
+
 #include "mm.h"
 
 #ifdef CONFIG_BSP_SDH_SDCARD
@@ -325,6 +331,11 @@ void board_init(void)
     BL_WR_WORD(IPC_SYNC_ADDR2, IPC_SYNC_FLAG);
     L1C_DCache_Clean_By_Addr(IPC_SYNC_ADDR1, 8);
 
+#ifdef CONFIG_BL808_JTAG
+    board_jtag_gpio_init();
+    printf("JTAG routed to this core (GPIO%d-%d)\r\n", CONFIG_BL808_JTAG_PIN_BASE, CONFIG_BL808_JTAG_PIN_BASE + 3);
+#endif
+
     printf("board init done\r\n");
     printf("===========================\r\n");
 }
@@ -348,6 +359,11 @@ void board_init(void)
 
     log_start();
 
+#ifdef CONFIG_BL808_JTAG
+    board_jtag_gpio_init();
+    printf("JTAG routed to this core (GPIO%d-%d)\r\n", CONFIG_BL808_JTAG_PIN_BASE, CONFIG_BL808_JTAG_PIN_BASE + 3);
+#endif
+
     printf("board init done\r\n");
     printf("===========================\r\n");
 }
@@ -370,10 +386,41 @@ void board_init(void)
 
     log_start();
 
+#ifdef CONFIG_BL808_JTAG
+    board_jtag_gpio_init();
+    printf("JTAG routed to this core (GPIO%d-%d)\r\n", CONFIG_BL808_JTAG_PIN_BASE, CONFIG_BL808_JTAG_PIN_BASE + 3);
+#endif
+
     printf("board init done\r\n");
     printf("===========================\r\n");
 }
 #endif
+
+/*
+ * Route the JTAG pins to the core running this code (M0, D0 or LP).
+ * On BL808 the JTAG pins belong to one core at a time, selected by GPIO
+ * function (GPIO_FUNC_JTAG_M0/D0/LP); the last core to configure them wins.
+ * Build with CONFIG_BL808_JTAG=y to call this from board_init(). Pins default
+ * to GPIO4-7, as in examples/lvgl/lvgl_v8_with_osd; override with
+ * CONFIG_BL808_JTAG_PIN_BASE.
+ */
+void board_jtag_gpio_init(void)
+{
+    struct bflb_device_s *gpio;
+#if defined(CPU_M0)
+    uint32_t func = GPIO_FUNC_JTAG_M0;
+#elif defined(CPU_D0)
+    uint32_t func = GPIO_FUNC_JTAG_D0;
+#else
+    uint32_t func = GPIO_FUNC_JTAG_LP;
+#endif
+
+    gpio = bflb_device_get_by_name("gpio");
+
+    for (uint8_t pin = CONFIG_BL808_JTAG_PIN_BASE; pin < CONFIG_BL808_JTAG_PIN_BASE + 4; pin++) {
+        bflb_gpio_init(gpio, pin, func | GPIO_ALTERNATE | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_1);
+    }
+}
 
 void board_uartx_gpio_init(void)
 {

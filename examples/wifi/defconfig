@@ -16,6 +16,9 @@ ifeq ($(CHIP),bl602)
 else ifeq ($(CHIP),bl808)
     # BL808 (M0): wifi4 MAC, prebuilt blobs from tools/bl808_wireless/fetch_blobs.sh
     CONFIG_WIFI4=y
+    # Crystal load capacitor code; 0 keeps the eFuse/boot value.
+    # Sipeed M1s Dock: 50 (Zephyr measured ~57 ppm -> <1 ppm).
+    CONFIG_BL808_WIFI_XTAL_CAPCODE ?= 0
 else
     CONFIG_WIFI6=y
     CONFIG_MACSW_SELECT = default

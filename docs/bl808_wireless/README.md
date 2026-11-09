@@ -96,8 +96,9 @@ newlib. O `setup_toolchain.sh` baixa o XuanTie 2.6.1 do release `compact-old`,
 com verificação de SHA-256.
 
 Cristal do M1s Dock: o Zephyr usa o código de capacitor 50 (erro abaixo de
-1 ppm, contra cerca de 57 ppm sem ajuste). Para aplicar aqui, compile com
-`-DCONFIG_BL808_WIFI_XTAL_CAPCODE=50` (o padrão, 0, mantém o valor da eFuse).
+1 ppm, contra cerca de 57 ppm sem ajuste). Para aplicar aqui:
+`make CHIP=bl808 BOARD=bl808dk CPU_ID=m0 CONFIG_BL808_WIFI_XTAL_CAPCODE=50`.
+O padrão, 0, mantém o valor da eFuse.
 
 ## O que foi feito
 
@@ -132,7 +133,9 @@ WRAM. O `helloworld` compila no M0 e no D0.
 6. [ ] **Teste na placa:** boot, `wifi_scan`, conexão WPA2, DHCP, ping. Ainda
    **não testado no hardware.**
 7. [ ] BLE.
-8. [ ] Comando para gravar M0 e D0 de uma vez. Depuração pelo VS Code.
+8. [x] Gravar M0 e D0 de uma vez (`tools/bl808_wireless/flash.sh`). Depuração
+   pelo VS Code (`tools/bl808_wireless/vscode/`). Ver
+   [gravacao-e-depuracao.md](gravacao-e-depuracao.md).
 
 Problema já existente no fork, sem relação com este trabalho: o exemplo de
 Wi-Fi do **BL602** não compila (`drivers/lhal/src/bflb_common.c:357`).

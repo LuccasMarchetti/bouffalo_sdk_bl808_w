@@ -1,0 +1,50 @@
+// BL808 (M1s Dock) — depuração no VS Code com a extensão "C/C++" (ms-vscode.cpptools).
+// Copie esta pasta para .vscode/ na raiz do SDK:  cp -r tools/bl808_wireless/vscode .vscode
+//
+// 1. Compile o núcleo a depurar com CONFIG_BL808_JTAG=y e grave.
+// 2. Ligue o adaptador JTAG nos GPIO4-7 (ver docs/bl808_wireless/gravacao-e-depuracao.md).
+// 3. Escolha "Depurar M0" ou "Depurar D0": o OpenOCD sobe sozinho e o GDB se conecta
+//    ao programa que já está rodando (o código fica na flash, não é recarregado).
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Depurar M0 (E907)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${input:m0Elf}",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "riscv64-unknown-elf-gdb",
+            "miDebuggerServerAddress": "localhost:3333",
+            "stopAtConnect": true,
+            "setupCommands": [
+                { "text": "set architecture riscv:rv32" },
+                { "text": "set mem inaccessible-by-default off" },
+                { "text": "set remotetimeout 250" }
+            ],
+            "preLaunchTask": "BL808: OpenOCD M0"
+        },
+        {
+            "name": "Depurar D0 (C906)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${input:d0Elf}",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "riscv64-unknown-elf-gdb",
+            "miDebuggerServerAddress": "localhost:3334",
+            "stopAtConnect": true,
+            "setupCommands": [
+                { "text": "set architecture riscv:rv64" },
+                { "text": "set mem inaccessible-by-default off" },
+                { "text": "set remotetimeout 250" }
+            ],
+            "preLaunchTask": "BL808: OpenOCD D0"
+        }
+    ],
+    "inputs": [
+        { "id": "m0Elf", "type": "promptString", "description": "ELF do M0", "default": "examples/wifi/sta/wifi_tcp/build/build_out/wifi_tcp_bl808_m0.elf" },
+        { "id": "d0Elf", "type": "promptString", "description": "ELF do D0", "default": "examples/bl808_triplecore/helloworld_d0/build/build_out/helloworld_bl808_d0.elf" }
+    ]
+}
