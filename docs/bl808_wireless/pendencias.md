@@ -1,6 +1,7 @@
 # Pendências e próximos passos
 
-Situação em 09/11/2026, branch `wifi-bl808` (commit `a18836d`).
+Situação em 10/11/2026, branch `wifi-bl808`.
+O cronograma da bancada (SDK + Zephyr) está em `BANCADA.md` no repositório `bl809`.
 Tudo abaixo **compila**, mas **nada foi testado no hardware**.
 
 Legenda de prioridade: **P1** bloqueia o uso, **P2** importante, **P3** melhoria.
@@ -32,6 +33,8 @@ Serial: 2.000.000 baud. Gravação: segure BOOT, aperte e solte RST, solte BOOT.
 | T11 | Wi-Fi + BLE | `examples/wifi/coex/wifi_ble` | os dois funcionando ao mesmo tempo; log mostra o heap da PSRAM | ☐ |
 | T12 | Dois núcleos | `tools/bl808_wireless/flash.sh --m0 ... --d0 examples/bl808_triplecore/helloworld_d0` | log do M0 e do D0 | ☐ |
 | T13 | JTAG M0 / D0 | `CONFIG_BL808_JTAG=y` + OpenOCD | GDB para no programa | ☐ |
+| T14 | FreeRTOS no D0 | `examples/freertos`, `CPU_ID=d0` (antes deste fork nem compilava: `portBYTE_ALIGNMENT`) | tarefas trocando mensagens no console do D0 | ☐ |
+| T15 | Vetor no FreeRTOS do D0 | `examples/freertos_vector`, `CPU_ID=d0` | `VECTOR TEST PASS` após ~10 s | ☐ |
 
 Em qualquer falha: guardar o log completo da serial desde o boot.
 
@@ -99,3 +102,5 @@ Em qualquer falha: guardar o log completo da serial desde o boot.
 - [x] PSRAM como heap do M0 (`CONFIG_PSRAM=y`).
 - [x] Gravação de M0 + D0 numa vez (`flash.sh`).
 - [x] JTAG por núcleo (`CONFIG_BL808_JTAG=y`) e configurações do VS Code.
+- [x] FreeRTOS do D0: salva a unidade vetorial na troca de contexto e volta a
+  compilar (`portBYTE_ALIGNMENT`). Teste: `examples/freertos_vector`.
