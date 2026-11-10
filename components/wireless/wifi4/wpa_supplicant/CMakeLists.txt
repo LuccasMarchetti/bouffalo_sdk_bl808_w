@@ -9,6 +9,9 @@ sdk_add_include_directories(include include/bl_supplicant)
 
 sdk_add_private_include_directories(port/include src)
 
+# Supplicant debug log (wpa_printf), e.g. make CONFIG_WPA_DEBUG_PRINT=y
+sdk_add_private_compile_definitions_ifdef(CONFIG_WPA_DEBUG_PRINT -DDEBUG_PRINT)
+
 sdk_library_add_sources(port/os_bl.c)
 sdk_library_add_sources(src/ap/ap_config.c)
 sdk_library_add_sources(src/ap/wpa_auth_ie.c)
