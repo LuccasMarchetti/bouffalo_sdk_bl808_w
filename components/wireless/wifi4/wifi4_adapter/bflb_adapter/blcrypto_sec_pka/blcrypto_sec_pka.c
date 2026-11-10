@@ -62,9 +62,33 @@ int bflb_crypto_aes_transform_blocks(bflb_crypto_sec_aes_t *aes, bflb_crypto_sec
     } else {
         aes->link_cfg.aesDecEn = SEC_ENG_AES_DECRYPTION;
     }
+#if defined(CFG_CHIP_BL808)
+    /* The SEC engine fetches the link descriptor and the data by DMA, and
+     * the M0 has a data cache: go through uncached copies, as the mbedtls
+     * port does. ECB only, so the blocks can be split into chunks. */
+    {
+        static ATTR_NOCACHE_NOINIT_RAM_SECTION bl_SEC_Eng_AES_Link_Config_Type link;
+        static ATTR_NOCACHE_NOINIT_RAM_SECTION __attribute__((aligned(16))) uint8_t buf[64];
+        size_t done, chunk;
+
+        ret = SUCCESS;
+        taskENTER_CRITICAL();
+        memcpy(&link, &aes->link_cfg, sizeof(link));
+        sec_eng_aes_enable_link(AES_ID);
+        for (done = 0; done < bytes && ret == SUCCESS; done += chunk) {
+            chunk = (bytes - done) < sizeof(buf) ? (bytes - done) : sizeof(buf);
+            memcpy(buf, input + done, chunk);
+            ret = sec_eng_aes_link_work(AES_ID, (uint32_t)&link, buf, chunk, buf);
+            memcpy(output + done, buf, chunk);
+        }
+        sec_eng_aes_enable_link(AES_ID);
+        taskEXIT_CRITICAL();
+    }
+#else
     sec_eng_aes_enable_link(AES_ID);
     ret=sec_eng_aes_link_work(AES_ID,(uint32_t)&aes->link_cfg,input,bytes,output);
     sec_eng_aes_enable_link(AES_ID);
+#endif
     return !(ret==SUCCESS);
 }
 
