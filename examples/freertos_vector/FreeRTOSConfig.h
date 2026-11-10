@@ -59,8 +59,12 @@
 #define configCPU_CLOCK_HZ              ((uint32_t)(1 * 1000 * 1000))
 #define configTICK_RATE_HZ              ((TickType_t)1000)
 #define configMAX_PRIORITIES            (7)
-#define configMINIMAL_STACK_SIZE \
-    ((unsigned short)128) /* Only needs to be this high as some demo tasks also use this constant.  In production only the idle task would use this. */
+/*
+ * In words (8 bytes on the D0). On the D0 every context also holds the
+ * vector unit (560 bytes, c906/portVector.h): 128 words overflowed the timer
+ * task stack (vApplicationStackOverflowHook "Tmr Svc").
+ */
+#define configMINIMAL_STACK_SIZE ((unsigned short)256)
 #define configTOTAL_HEAP_SIZE                   ((size_t)24 * 1024)
 #define configMAX_TASK_NAME_LEN                 (16)
 #define configUSE_TRACE_FACILITY                1
