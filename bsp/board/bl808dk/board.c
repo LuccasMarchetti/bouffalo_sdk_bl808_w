@@ -1,3 +1,4 @@
+#include <string.h>
 #include "bflb_uart.h"
 #include "bflb_gpio.h"
 #include "bflb_clock.h"
@@ -13,6 +14,44 @@
 /* First of the four JTAG pins (see board_jtag_gpio_init()). */
 #ifndef CONFIG_BL808_JTAG_PIN_BASE
 #define CONFIG_BL808_JTAG_PIN_BASE 4
+#endif
+
+#ifdef CONFIG_BL808_BANCADA
+#include "bflb_wdg.h"
+
+#ifndef CONFIG_BL808_BANCADA_WDT_SECONDS
+#define CONFIG_BL808_BANCADA_WDT_SECONDS 60
+#endif
+
+/*
+ * Unattended bench (M0 only): erase the boot header sector and arm the
+ * watchdog. The image keeps running from XIP; when the watchdog fires, the
+ * boot ROM finds no valid image and waits for the flash tool on UART0, so
+ * the next image is written without the BOOT/RST buttons. Same scheme as
+ * the Zephyr bench module (bl809/zephyr/bancada).
+ */
+static void board_bancada_init(void)
+{
+    struct bflb_device_s *wdg = bflb_device_get_by_name("watchdog0");
+    struct bflb_wdg_config_s cfg = {
+        .clock_source = WDG_CLKSRC_32K,
+        .clock_div = 255, /* 32768 / 256 = 128 Hz */
+        .comp_val = (CONFIG_BL808_BANCADA_WDT_SECONDS * 128 > 0xffff) ? 0xffff : CONFIG_BL808_BANCADA_WDT_SECONDS * 128,
+        .mode = WDG_MODE_RESET,
+    };
+    uint8_t magic[4] = { 0 };
+    int ret = -1;
+
+    bflb_wdg_init(wdg, &cfg);
+    bflb_wdg_start(wdg);
+    printf("BANCADA: watchdog em %d s\r\n", CONFIG_BL808_BANCADA_WDT_SECONDS);
+
+    bflb_flash_read(0, magic, sizeof(magic));
+    if (memcmp(magic, "BFNP", 4) == 0) {
+        ret = bflb_flash_erase(0, 4096);
+    }
+    printf("BANCADA: cabecalho %s (ret %d)\r\n", ret == 0 ? "apagado" : "NAO apagado", ret);
+}
 #endif
 
 
@@ -329,6 +368,11 @@ void board_init(void)
     rtc = bflb_device_get_by_name("rtc");
 #endif
 
+#ifdef CONFIG_BL808_BANCADA
+    /* Before the D0/LP start: the erase stops the XIP they run from. */
+    board_bancada_init();
+#endif
+
     /* set CPU D0 boot XIP address and flash address */
     Tzc_Sec_Set_CPU_Group(GLB_CORE_ID_D0, 1);
     /* D0 boot from 0x58000000 */
@@ -438,6 +482,23 @@ void board_jtag_gpio_init(void)
 
     for (uint8_t pin = CONFIG_BL808_JTAG_PIN_BASE; pin < CONFIG_BL808_JTAG_PIN_BASE + 4; pin++) {
         bflb_gpio_init(gpio, pin, func | GPIO_ALTERNATE | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_1);
+    }
+
+    /*
+     * The boot ROM leaves GPIO6/7/12/13 on JTAG_M0. With a second pin group
+     * on a JTAG function the TAP does not answer (seen on a M1s Dock), so
+     * every other pin on a JTAG function goes back to a plain input.
+     */
+    for (uint8_t pin = 0; pin < 46; pin++) {
+        uint32_t f = (getreg32(GLB_BASE + GLB_GPIO_CFG0_OFFSET + 4 * pin) >> 8) & 0x1f;
+
+        if (pin >= CONFIG_BL808_JTAG_PIN_BASE && pin < CONFIG_BL808_JTAG_PIN_BASE + 4) {
+            continue;
+        }
+        if (f == (GPIO_FUNC_JTAG_LP >> GPIO_FUNC_SHIFT) || f == (GPIO_FUNC_JTAG_M0 >> GPIO_FUNC_SHIFT) ||
+            f == (GPIO_FUNC_JTAG_D0 >> GPIO_FUNC_SHIFT)) {
+            bflb_gpio_init(gpio, pin, GPIO_INPUT | GPIO_FLOAT | GPIO_SMT_EN | GPIO_DRV_0);
+        }
     }
 }
 
