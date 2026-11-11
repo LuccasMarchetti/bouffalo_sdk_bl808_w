@@ -14,7 +14,7 @@ OUTPUT_ARCH( "riscv" )
 /* configure the entry point */
 ENTRY(__start)
 
-StackSize    = 0x0400; /*  1KB */
+StackSize    = 0x1000; /*  4KB: main() runs the RF and flash init before the scheduler starts, and this is also the interrupt stack */
 HeapMinSize  = 0x1000; /*  4KB */
 psram_heap_min_size = 0x1000;
 __EM_SIZE = DEFINED(btble_controller_init) ? 32K : 0K;
