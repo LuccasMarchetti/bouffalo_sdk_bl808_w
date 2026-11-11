@@ -69,7 +69,17 @@
 #define TCP_QUEUE_OOSEQ               1
 #define MEMP_NUM_TCP_SEG              ((4 * TCP_SND_BUF) / TCP_MSS)
 #define MEMP_NUM_PBUF                 (TCP_SND_BUF / TCP_MSS)
+#if defined(CFG_CHIP_BL808)
+/* BL808 copies every received frame into PBUF_POOL buffers (no zero-copy RX
+ * in bl_utils.c): an empty pool drops all data frames, DHCP included. */
+#define PBUF_POOL_SIZE                16
+#define PBUF_POOL_BUFSIZE             1600
+/* The receive window has to fit in that pool. */
+#undef TCP_WND
+#define TCP_WND                       (10 * TCP_MSS)
+#else
 #define PBUF_POOL_SIZE                0
+#endif
 #define LWIP_WND_SCALE                1
 #define TCP_RCV_SCALE                 2
 #define TCP_SNDLOWAT                  LWIP_MIN(LWIP_MAX(((TCP_SND_BUF) / 4), (2 * TCP_MSS) + 1), (TCP_SND_BUF)-1)
