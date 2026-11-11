@@ -670,7 +670,15 @@ if(("${CHIP}" STREQUAL "bl616") OR ("${CHIP}" STREQUAL "bl808") OR ("${CHIP}" ST
 		_check_conflict(CONFIG_BT_OBSERVER n)
 		_check_conflict(CONFIG_DISABLE_BLE_CONTROLLER_TEST_MODE n)
 		_check_conflict(CONFIG_BT_CONN 1)
-		_check_conflict(CONFIG_BLE_TX_BUFF_DATA 2)
+		if("${CHIP}" STREQUAL "bl808")
+			# BL808 links the BL606P controller blob, which does not use this
+			# value. With 2 host TX buffers the first ATT exchange deadlocks:
+			# two pending MTU requests hold them and the response to the
+			# peer's request cannot be allocated.
+			_check_conflict(CONFIG_BLE_TX_BUFF_DATA 4)
+		else()
+			_check_conflict(CONFIG_BLE_TX_BUFF_DATA 2)
+		endif()
 		_check_conflict(CONFIG_BLE_ACT_MAX 7)
 		_check_conflict(CONFIG_DISABLE_BT_ECC y)
 		_check_conflict(CONFIG_ADV_EXTENSION n)
