@@ -79,11 +79,11 @@ buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
 
 ### P1
 
-- [ ] **`PBUF_POOL_SIZE 0` nos outros exemplos de Wi-Fi.** O RX do BL808 copia cada
+- [x] **`PBUF_POOL_SIZE 0` nos exemplos de Wi-Fi.** O RX do BL808 copia cada
   quadro para o pool de pbufs (`bl_utils.c`); com o pool vazio nenhum quadro de
-  dados chega. Corrigido só em `wifi_tcp` e `wifi_ble` (bloco `CFG_CHIP_BL808` no
-  `lwipopts_user.h`, com `TCP_WND` menor). Faltam os outros ~19
-  `lwipopts_user.h` de `examples/wifi`.
+  dados chega. Corrigido em todos os `lwipopts_user.h` de `examples/wifi` menos
+  `wifi_eth_bridge` (outra configuração). Rodados na placa: `wifi_tcp` e
+  `wifi_ble`; os outros só compilados (`wifi_udp`, `wifi_http`, `wifi_mqtt_pub`).
 
 ### P2
 
