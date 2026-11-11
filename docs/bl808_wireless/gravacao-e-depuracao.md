@@ -81,9 +81,25 @@ Para usar outros quatro pinos seguidos:
 Ative em **um** núcleo só: se os dois configurarem os pinos, vale o último,
 que normalmente é o D0, porque ele inicia depois do M0.
 
-A função de cada pino (TMS, TCK, TDI, TDO) dentro de GPIO4–7 e a
-disponibilidade desses pinos no M1s Dock estão **(a confirmar)** no
-datasheet e no esquema da placa.
+**No M1s Dock** (medido na bancada, 11/2026): GPIO4–7 não estão livres; o
+grupo de JTAG acessível é o do **slot micro SD**, com o adaptador de JTAG da
+Sipeed: GPIO0 = TCK, GPIO1 = TDI, GPIO2 = TMS, GPIO3 = TDO. Compile com
+`CONFIG_BL808_JTAG=y CONFIG_BL808_JTAG_PIN_BASE=0`. O padrão continua 4 porque
+este `board.c` é o do `bl808dk`. O `board_jtag_gpio_init()` também tira a
+função JTAG dos GPIO6/7/12/13, que o bootrom deixa em `JTAG_M0`: com dois
+grupos de pinos em JTAG, o TAP não responde.
+
+**TAP da T-Head e OpenOCD:** o TAP do E907/C906 não volta o IR para IDCODE no
+Test-Logic-Reset. Sem cuidado, o OpenOCD falha uma sessão sim, outra não
+(lê o IDCODE com o IR em DMI, deixado pela sessão anterior). As cfgs
+`tgt_e907.cfg` e `tgt_c906.cfg` deixam o IR em IDCODE ao sair
+(`pre_shutdown_commands`). Se uma sessão morrer sem o `shutdown`, a seguinte
+pode falhar uma vez: rode de novo.
+
+**Leitura do XIP pelo depurador:** no M0, a CPU vê a imagem em `0x58000000`,
+mas o GDB/OpenOCD lê `0x58000000 + X` na posição X da flash, sem o
+deslocamento da imagem (no Zephyr, `0x2000`). Para conferir o código gravado,
+leia a partir de `0x58002000`.
 
 ### O que o SDK já traz
 
@@ -96,7 +112,9 @@ datasheet e no esquema da placa.
 | Firmware CKLink para BL702 | `tools/cklink_firmware/` |
 
 Adaptador: qualquer um suportado pelo OpenOCD (CH347 ou FT2232 já têm
-`.cfg`), ou o Sipeed RV-Debugger Plus com o firmware CKLink. Usar o próprio
+`.cfg`). O Sipeed RV-Debugger Plus funciona com o OpenOCD (`ft2232d.cfg`) se
+tiver o firmware `usb2uartjtag` da Sipeed, que emula um FT2232D; com o
+firmware CKLink ele só funciona com o T-Head DebugServer. Usar o próprio
 BL702 do M1s Dock como JTAG está **(a confirmar)**.
 
 ### Linha de comando
