@@ -1,7 +1,11 @@
 #ifndef _BOARD_H
 #define _BOARD_H
 
+#include <stdint.h>
+
 void board_init(void);
+/* PSRAM size from the eFuse, 0 without CONFIG_PSRAM or PSRAM */
+uint32_t board_psram_size_get(void);
 
 void board_jtag_gpio_init(void);
 void board_uartx_gpio_init(void);

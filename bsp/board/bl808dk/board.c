@@ -97,6 +97,7 @@ static void peripheral_clock_init(void)
     PERIPHERAL_CLOCK_PWM0_ENABLE();
     PERIPHERAL_CLOCK_TIMER0_1_WDG_ENABLE();
     PERIPHERAL_CLOCK_IR_ENABLE();
+    PERIPHERAL_CLOCK_CKS_ENABLE();
     PERIPHERAL_CLOCK_I2S_ENABLE();
     PERIPHERAL_CLOCK_USB_ENABLE();
     PERIPHERAL_CLOCK_CAN_UART2_ENABLE();
@@ -139,6 +140,13 @@ static void peripheral_clock_init(void)
 #define WB_32MB_PSRAM  (4)
 #define NONE_UHS_PSRAM (-1)
 
+static uint32_t g_psram_size;
+
+uint32_t board_psram_size_get(void)
+{
+    return g_psram_size;
+}
+
 int uhs_psram_init(void)
 {
     PSRAM_UHS_Cfg_Type psramDefaultCfg = {
@@ -152,8 +160,10 @@ int uhs_psram_init(void)
     bflb_efuse_get_device_info(&chip_info);
     if (chip_info.psram_info == UHS_32MB_PSRAM) {
         psramDefaultCfg.psramMemSize = PSRAM_MEM_SIZE_32MB;
+        g_psram_size = 32 * 1024 * 1024;
     } else if (chip_info.psram_info == UHS_64MB_PSRAM) {
         psramDefaultCfg.psramMemSize = PSRAM_MEM_SIZE_64MB;
+        g_psram_size = 64 * 1024 * 1024;
     } else {
         return -1;
     }
