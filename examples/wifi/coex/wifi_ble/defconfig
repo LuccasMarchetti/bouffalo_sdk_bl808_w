@@ -22,6 +22,14 @@ else ifeq ($(CHIP),bl808)
     CONFIG_BTBLECONTROLLER_LIB =ble1m10s1bredr0
     # Wi-Fi RAM + BLE EM leave ~14K of internal heap: use the PSRAM too.
     CONFIG_PSRAM =y
+    # With the PSRAM heap the mbedtls buffers can be in PSRAM, which the SEC
+    # engine does not read (the hardware SHA gave a wrong PSK): software.
+    CONFIG_MBEDTLS_AES_USE_HW    =n
+    CONFIG_MBEDTLS_BIGNUM_USE_HW =n
+    CONFIG_MBEDTLS_ECC_USE_HW    =n
+    CONFIG_MBEDTLS_SHA1_USE_HW   =n
+    CONFIG_MBEDTLS_SHA256_USE_HW =n
+    CONFIG_MBEDTLS_SHA512_USE_HW =n
     CONFIG_BFLB_MTD =y
     CONFIG_PARTITION =y
     CONFIG_LITTLEFS =y
