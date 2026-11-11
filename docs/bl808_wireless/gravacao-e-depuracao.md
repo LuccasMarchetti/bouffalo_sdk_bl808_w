@@ -153,7 +153,35 @@ Precisa da extensão **C/C++** (`ms-vscode.cpptools`) e do compilador no
 O VS Code pergunta o exemplo, a porta e o adaptador a cada uso. Os valores
 padrão apontam para `wifi_tcp` (M0) e `bl808_triplecore/helloworld_d0` (D0).
 
-Com dois adaptadores, dá para abrir as duas sessões ao mesmo tempo (portas
-3333 e 3334), cada uma num conjunto de pinos **(a confirmar)**.
+Dois núcleos ao mesmo tempo, cada um num grupo de pinos com o seu
+adaptador, **não funcionou** na bancada: com dois grupos de GPIO na função
+JTAG, o TAP não responde. Para depurar o M0 e o D0 na mesma sessão, passe o
+JTAG de um para o outro sem regravar (`jtag.sh passa`, abaixo).
 
 Eclipse: já existe `tools/eclipse_gdb_launch/CKLink_BL808.launch`.
+
+## Na bancada (M1s Dock, debugger nos GPIO0–3)
+
+Os scripts ficam no repositório de notas (`bl809/bancada/`) e foram
+testados na placa em 11/11/2026. A imagem que roda precisa ter ligado o
+JTAG nos GPIO0–3 (`CONFIG_BL808_JTAG=y CONFIG_BL808_JTAG_PIN_BASE=0` no SDK,
+`CONFIG_SOC_BL808_JTAG=y` no Zephyr). O bootrom só deixa o JTAG nos
+GPIO6/7/12/13, então uma flash vazia, ou uma imagem sem essa opção, só se
+grava pela UART.
+
+| O que | Comando | Observação |
+|---|---|---|
+| Gravar a flash pelo JTAG | `jtag_flash.py [--reset] ENDERECO:ARQUIVO ...` | carrega um gravador na RAM do M0, grava em blocos de 16 KB e confere o CRC32; ~7 KB/s |
+| Carregar e rodar na RAM pelo JTAG | `jtag.sh ram m0 ELF` | ELF ligado na RAM (ver `bancada/jtag_flash/bl808_ram_m0.ld`) |
+| Carregar na RAM pela UART (bootrom) | `bflb-mcu-tool-uart --chipname bl808 --bootsrc UART/USB --addr 0x62030000 --firmware X.bin --port ... --baudrate 2000000` | com o chip no modo de gravação; não toca na flash |
+| Passar o JTAG do M0 para o D0 e voltar | `jtag.sh passa m0 d0`, `jtag.sh passa d0 m0` | o núcleo que tem o JTAG executa um trecho que reescreve a função dos 4 GPIO; os dois continuam rodando |
+| Reiniciar no modo de gravação | `jtag.sh reset` | com o cabeçalho apagado pelo serviço de bancada |
+
+Imagem do Zephyr para o endereço 0: `bflb-mcu-tool-uart --chipname bl808
+--firmware zephyr.bin --build` gera `whole_img.bin` (cabeçalho + código em
+`0x2000`). No SDK, o `build_out/*_bl808_m0.bin` já vai no endereço 0.
+
+**LP (E902):** não se depura pelo OpenOCD. Ele não tem o módulo de depuração
+RISC-V nos pinos (TDO sempre em 1 com os GPIO na função `JTAG_LP`), e sim o
+HAD da T-Head, de 2 fios. É preciso um CK-Link (ou o firmware CK-Link no
+RV-Debugger) e o T-Head DebugServer.
