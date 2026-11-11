@@ -368,6 +368,13 @@ void board_init(void)
     rtc = bflb_device_get_by_name("rtc");
 #endif
 
+#ifdef CONFIG_MBEDTLS
+    /* Mutexes of the SEC engine's hardware SHA/AES used by mbedtls (as on
+     * the other boards); without them the first PSK derivation asserts. */
+    extern void bflb_sec_mutex_init(void);
+    bflb_sec_mutex_init();
+#endif
+
 #ifdef CONFIG_BL808_BANCADA
     /* Before the D0/LP start: the erase stops the XIP they run from. */
     board_bancada_init();
