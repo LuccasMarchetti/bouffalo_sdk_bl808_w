@@ -22,9 +22,17 @@
 #include "wifi_ota_internal.h"
 #include "wifi_ota.h"
 #include "bflb_flash.h"
+#ifdef CONFIG_IPC
 #include "bflb_multi_core_sync.h"
+#endif
 #include "partition.h"
+#if defined(BL808)
+/* drivers/sys has no BL808 port: reset through GLB */
+#include "bl808_glb.h"
+#define bl_sys_reset_por() GLB_SW_POR_Reset()
+#else
 #include "bl_sys.h"
+#endif
 
 #ifdef CONFIG_IPC
 #include <flash_ops_rpmsg.h>

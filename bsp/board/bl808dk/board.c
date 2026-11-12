@@ -46,11 +46,18 @@ static void board_bancada_init(void)
     bflb_wdg_start(wdg);
     printf("BANCADA: watchdog em %d s\r\n", CONFIG_BL808_BANCADA_WDT_SECONDS);
 
+#ifdef CONFIG_BL808_BANCADA_KEEP_BOOT
+    /* boot2 at 0 must survive an OTA reboot: the test erases it at the end */
+    (void)magic;
+    (void)ret;
+    printf("BANCADA: cabecalho mantido (KEEP_BOOT)\r\n");
+#else
     bflb_flash_read(0, magic, sizeof(magic));
     if (memcmp(magic, "BFNP", 4) == 0) {
         ret = bflb_flash_erase(0, 4096);
     }
     printf("BANCADA: cabecalho %s (ret %d)\r\n", ret == 0 ? "apagado" : "NAO apagado", ret);
+#endif
 }
 #endif
 
