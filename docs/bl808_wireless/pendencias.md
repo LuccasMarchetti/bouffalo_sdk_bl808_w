@@ -91,8 +91,19 @@ buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   e com o IPC do LP desmascarado a linha pendente no LP é a 19 (16 + 3). O
   `IPC_LP_IRQn = IRQ_NUM_BASE + 35` do `bl808.h` não existe no LP
   (`CPU_LP_MAX_IRQ_NUM` = 16 + 32). Um código do LP que use `IPC_LP_IRQn`
-  nunca recebe o IPC. Também: a entrada `timer1` do `device_table.c` no M0
-  mistura o bloco do MM (`0x30009000`) com a IRQ do canal 1 do TIMER0 (+37).
+  nunca recebe o IPC (o `IPC_LP_Init()` do `bl808_ipc.c` faz isso).
+- [x] **Tabela de dispositivos (13/11/2026):** entraram I2C1, I2C2, I2C3, SPI1,
+  DMA1 (4 canais) e I2S0, o clock por instância e o bit de mestre do SPI1;
+  `timer0`/`timer1`/`watchdog0` apontam para o bloco de cada núcleo (antes o
+  `timer1` do M0 era o bloco do MM com a IRQ do canal 1 do TIMER0). Testado
+  na placa, menos o I2S0 (sem codec). **Faltam** IPC, AUADC/AUDAC, DMA2D e
+  MJDEC: o SDK nem compila esses drivers para o BL808 (port de driver).
+- [ ] **I2C: NACK vira timeout.** `bflb_i2c_write_bytes()`/`read_bytes()`
+  esperam `busy || !end || nak` e devolvem `-ETIMEDOUT` depois de 100 ms num
+  NACK; o certo é `-EIO` na hora (o Zephyr já faz). Uma varredura de 112
+  endereços leva 11 s.
+- [ ] **UART3:** `Clock_Peripheral_Clock_Get(BL_PERIPHERAL_CLOCK_UART3)` não
+  bate com o clock real da UART3; o lhal continua usando o valor da UART0.
 
 - [ ] **SEC e PSRAM:** com o heap na PSRAM (`CONFIG_PSRAM=y`), os ports de mbedtls
   em hardware (`components/crypto/mbedtls/port/hw_acc`) recebem buffers na PSRAM,
