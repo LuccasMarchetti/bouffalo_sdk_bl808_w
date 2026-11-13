@@ -279,6 +279,41 @@ static inline bool bflb_i2c_isenable(struct bflb_device_s *dev)
     return false;
 }
 
+/*
+ * A NACK sets the NAK flag first; the END flag follows a few microseconds
+ * later, with the STOP. Wait for it before disabling, or the next transfer
+ * would take it as its own end and report success (false ACK).
+ */
+static int bflb_i2c_nak_done(struct bflb_device_s *dev, uint64_t start_time)
+{
+    while (!bflb_i2c_isend(dev) && (bflb_mtimer_get_time_ms() - start_time) <= 100) {
+    }
+    bflb_i2c_disable(dev);
+    return -EIO;
+}
+
+/* Wait for the end of a transfer: 0, -EIO on NACK or -ETIMEDOUT */
+static int bflb_i2c_wait_done(struct bflb_device_s *dev)
+{
+    uint64_t start_time = bflb_mtimer_get_time_ms();
+
+    while (bflb_i2c_isbusy(dev) || !bflb_i2c_isend(dev)) {
+        if (bflb_i2c_isnak(dev)) {
+            return bflb_i2c_nak_done(dev, start_time);
+        }
+        if ((bflb_mtimer_get_time_ms() - start_time) > 100) {
+            return -ETIMEDOUT;
+        }
+    }
+    if (bflb_i2c_isnak(dev)) {
+        bflb_i2c_disable(dev);
+        return -EIO;
+    }
+    bflb_i2c_disable(dev);
+
+    return 0;
+}
+
 __UNUSED static int bflb_i2c_write_bytes(struct bflb_device_s *dev, uint8_t *data, uint32_t len)
 {
     uint32_t reg_base;
@@ -296,6 +331,9 @@ __UNUSED static int bflb_i2c_write_bytes(struct bflb_device_s *dev, uint8_t *dat
         len -= 4;
         start_time = bflb_mtimer_get_time_ms();
         while ((getreg32(reg_base + I2C_FIFO_CONFIG_1_OFFSET) & I2C_TX_FIFO_CNT_MASK) == 0) {
+            if (bflb_i2c_isnak(dev)) {
+                return bflb_i2c_nak_done(dev, start_time);
+            }
             if ((bflb_mtimer_get_time_ms() - start_time) > 100) {
                 return -ETIMEDOUT;
             }
@@ -313,6 +351,9 @@ __UNUSED static int bflb_i2c_write_bytes(struct bflb_device_s *dev, uint8_t *dat
         }
         start_time = bflb_mtimer_get_time_ms();
         while ((getreg32(reg_base + I2C_FIFO_CONFIG_1_OFFSET) & I2C_TX_FIFO_CNT_MASK) == 0) {
+            if (bflb_i2c_isnak(dev)) {
+                return bflb_i2c_nak_done(dev, start_time);
+            }
             if ((bflb_mtimer_get_time_ms() - start_time) > 100) {
                 return -ETIMEDOUT;
             }
@@ -323,15 +364,7 @@ __UNUSED static int bflb_i2c_write_bytes(struct bflb_device_s *dev, uint8_t *dat
         }
     }
 
-    start_time = bflb_mtimer_get_time_ms();
-    while (bflb_i2c_isbusy(dev) || !bflb_i2c_isend(dev) || bflb_i2c_isnak(dev)) {
-        if ((bflb_mtimer_get_time_ms() - start_time) > 100) {
-            return -ETIMEDOUT;
-        }
-    }
-    bflb_i2c_disable(dev);
-
-    return 0;
+    return bflb_i2c_wait_done(dev);
 }
 
 __UNUSED static int bflb_i2c_read_bytes(struct bflb_device_s *dev, uint8_t *data, uint32_t len)
@@ -349,6 +382,9 @@ __UNUSED static int bflb_i2c_read_bytes(struct bflb_device_s *dev, uint8_t *data
     while (len >= 4) {
         start_time = bflb_mtimer_get_time_ms();
         while ((getreg32(reg_base + I2C_FIFO_CONFIG_1_OFFSET) & I2C_RX_FIFO_CNT_MASK) == 0) {
+            if (bflb_i2c_isnak(dev)) {
+                return bflb_i2c_nak_done(dev, start_time);
+            }
             if ((bflb_mtimer_get_time_ms() - start_time) > 100) {
                 return -ETIMEDOUT;
             }
@@ -362,6 +398,9 @@ __UNUSED static int bflb_i2c_read_bytes(struct bflb_device_s *dev, uint8_t *data
     if (len > 0) {
         start_time = bflb_mtimer_get_time_ms();
         while ((getreg32(reg_base + I2C_FIFO_CONFIG_1_OFFSET) & I2C_RX_FIFO_CNT_MASK) == 0) {
+            if (bflb_i2c_isnak(dev)) {
+                return bflb_i2c_nak_done(dev, start_time);
+            }
             if ((bflb_mtimer_get_time_ms() - start_time) > 100) {
                 return -ETIMEDOUT;
             }
@@ -373,15 +412,7 @@ __UNUSED static int bflb_i2c_read_bytes(struct bflb_device_s *dev, uint8_t *data
         }
     }
 
-    start_time = bflb_mtimer_get_time_ms();
-    while (bflb_i2c_isbusy(dev) || !bflb_i2c_isend(dev)) {
-        if ((bflb_mtimer_get_time_ms() - start_time) > 100) {
-            return -ETIMEDOUT;
-        }
-    }
-    bflb_i2c_disable(dev);
-
-    return 0;
+    return bflb_i2c_wait_done(dev);
 }
 
 void bflb_i2c_init(struct bflb_device_s *dev, uint32_t frequency)
