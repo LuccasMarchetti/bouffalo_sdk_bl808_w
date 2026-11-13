@@ -308,23 +308,126 @@ struct bflb_device_s bl808_device_table[] = {
       .sub_idx = 0,
       .dev_type = BFLB_DEVICE_TYPE_I2C,
       .user_data = NULL },
-    { .name = BFLB_NAME_TIMER0,
-      .reg_base = TIMER0_BASE,
+    { .name = BFLB_NAME_I2C1,
+      .reg_base = I2C1_BASE,
 #if defined(CPU_M0) || defined(CPU_LP)
-      .irq_num = BL808_IRQ_TIMER0,
+      .irq_num = BL808_IRQ_I2C1,
 #else
       .irq_num = 0xff,
+#endif
+      .idx = 1,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_I2C,
+      .user_data = NULL },
+    { .name = BFLB_NAME_I2C2,
+      .reg_base = I2C2_BASE,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = 0xff,
+#else
+      .irq_num = BL808_IRQ_I2C2,
+#endif
+      .idx = 2,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_I2C,
+      .user_data = NULL },
+    { .name = BFLB_NAME_I2C3,
+      .reg_base = I2C3_BASE,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = 0xff,
+#else
+      .irq_num = BL808_IRQ_I2C3,
+#endif
+      .idx = 3,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_I2C,
+      .user_data = NULL },
+    { .name = BFLB_NAME_SPI1,
+      .reg_base = SPI1_BASE,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = 0xff,
+#else
+      .irq_num = BL808_IRQ_SPI1,
+#endif
+      .idx = 1,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_SPI,
+      .user_data = NULL },
+    { .name = BFLB_NAME_DMA1_CH0,
+      .reg_base = DMA1_BASE + 1 * DMA_CHANNEL_OFFSET,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = BL808_IRQ_DMA1_ALL,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 1,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_DMA,
+      .user_data = NULL },
+    { .name = BFLB_NAME_DMA1_CH1,
+      .reg_base = DMA1_BASE + 2 * DMA_CHANNEL_OFFSET,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = BL808_IRQ_DMA1_ALL,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 1,
+      .sub_idx = 1,
+      .dev_type = BFLB_DEVICE_TYPE_DMA,
+      .user_data = NULL },
+    { .name = BFLB_NAME_DMA1_CH2,
+      .reg_base = DMA1_BASE + 3 * DMA_CHANNEL_OFFSET,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = BL808_IRQ_DMA1_ALL,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 1,
+      .sub_idx = 2,
+      .dev_type = BFLB_DEVICE_TYPE_DMA,
+      .user_data = NULL },
+    { .name = BFLB_NAME_DMA1_CH3,
+      .reg_base = DMA1_BASE + 4 * DMA_CHANNEL_OFFSET,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = BL808_IRQ_DMA1_ALL,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 1,
+      .sub_idx = 3,
+      .dev_type = BFLB_DEVICE_TYPE_DMA,
+      .user_data = NULL },
+    { .name = BFLB_NAME_I2S0,
+      .reg_base = I2S_BASE,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = BL808_IRQ_I2S,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 0,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_I2S,
+      .user_data = NULL },
+    { .name = BFLB_NAME_TIMER0,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .reg_base = TIMER0_BASE,
+      .irq_num = BL808_IRQ_TIMER0,
+#else
+      /* the D0 has the timer block of the multimedia domain */
+      .reg_base = TIMER1_BASE,
+      .irq_num = BL808_IRQ_TIMER0,
 #endif
       .idx = 0,
       .sub_idx = 0,
       .dev_type = BFLB_DEVICE_TYPE_TIMER,
       .user_data = NULL },
     { .name = BFLB_NAME_TIMER1,
-      .reg_base = TIMER1_BASE,
 #if defined(CPU_M0) || defined(CPU_LP)
+      .reg_base = TIMER0_BASE,
       .irq_num = BL808_IRQ_TIMER1,
 #else
-      .irq_num = 0xff,
+      /* the D0 has the timer block of the multimedia domain */
+      .reg_base = TIMER1_BASE,
+      .irq_num = BL808_IRQ_TIMER1,
 #endif
       .idx = 1,
       .sub_idx = 0,
@@ -428,11 +531,12 @@ struct bflb_device_s bl808_device_table[] = {
       .dev_type = BFLB_DEVICE_TYPE_MJPEG,
       .user_data = NULL },
     { .name = BFLB_NAME_WDT,
-      .reg_base = TIMER0_BASE,
 #if defined(CPU_M0) || defined(CPU_LP)
+      .reg_base = TIMER0_BASE,
       .irq_num = BL808_IRQ_WDT,
 #else
-      .irq_num = 0xff,
+      .reg_base = TIMER1_BASE,
+      .irq_num = BL808_IRQ_WDT,
 #endif
       .idx = 0,
       .sub_idx = 0,
@@ -670,11 +774,12 @@ struct bflb_device_s bl808_device_table[] = {
       .dev_type = BFLB_DEVICE_TYPE_DBI,
       .user_data = NULL },
     { .name = BFLB_NAME_WDT,
-      .reg_base = TIMER0_BASE,
 #if defined(CPU_M0) || defined(CPU_LP)
+      .reg_base = TIMER0_BASE,
       .irq_num = BL808_IRQ_WDT,
 #else
-      .irq_num = 0xff,
+      .reg_base = TIMER1_BASE,
+      .irq_num = BL808_IRQ_WDT,
 #endif
       .idx = 0,
       .sub_idx = 0,
