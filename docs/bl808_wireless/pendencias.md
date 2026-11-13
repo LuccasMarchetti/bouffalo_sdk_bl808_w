@@ -102,8 +102,6 @@ buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   esperam `busy || !end || nak` e devolvem `-ETIMEDOUT` depois de 100 ms num
   NACK; o certo é `-EIO` na hora (o Zephyr já faz). Uma varredura de 112
   endereços leva 11 s.
-- [ ] **UART3:** `Clock_Peripheral_Clock_Get(BL_PERIPHERAL_CLOCK_UART3)` não
-  bate com o clock real da UART3; o lhal continua usando o valor da UART0.
 
 - [ ] **SEC e PSRAM:** com o heap na PSRAM (`CONFIG_PSRAM=y`), os ports de mbedtls
   em hardware (`components/crypto/mbedtls/port/hw_acc`) recebem buffers na PSRAM,

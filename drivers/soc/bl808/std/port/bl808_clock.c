@@ -9,12 +9,10 @@ uint32_t bflb_clk_get_system_clock(uint8_t type)
 
 uint32_t bflb_clk_get_peripheral_clock(uint8_t type, uint8_t idx)
 {
-    /* SPI1, I2C2 and I2C3 belong to the multimedia domain and have their own
-       clock mux and dividers in MM_GLB */
+    /* UART3, SPI1, I2C2 and I2C3 belong to the multimedia domain and have
+       their own clock mux and dividers in MM_GLB */
     if (type == BFLB_DEVICE_TYPE_UART) {
-        /* UART3 (MM) also uses the UART0 value: Clock_Peripheral_Clock_Get(UART3)
-           does not match the real UART3 clock (the D0 console breaks with it) */
-        return Clock_Peripheral_Clock_Get(BL_PERIPHERAL_CLOCK_UART0);
+        return Clock_Peripheral_Clock_Get(idx <= 3 ? BL_PERIPHERAL_CLOCK_UART0 + idx : BL_PERIPHERAL_CLOCK_UART0);
     } else if (type == BFLB_DEVICE_TYPE_SPI) {
         return Clock_Peripheral_Clock_Get(idx == 1 ? BL_PERIPHERAL_CLOCK_SPI1 : BL_PERIPHERAL_CLOCK_SPI0);
     } else if (type == BFLB_DEVICE_TYPE_I2C) {
