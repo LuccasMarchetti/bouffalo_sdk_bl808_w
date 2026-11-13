@@ -80,6 +80,14 @@ void bflb_spi_init(struct bflb_device_s *dev, const struct bflb_spi_config_s *co
 #endif
         }
     }
+#elif defined(BL606P) || defined(BL808)
+    /* SPI1 of the multimedia domain has its own master bit (reg_mm_spi_master_mode) */
+    uint32_t mode_bit = (dev->idx == 1) ? (1 << 27) : (1 << 12);
+    if (config->role == SPI_ROLE_MASTER) {
+        regval |= mode_bit;
+    } else {
+        regval &= ~mode_bit;
+    }
 #else
     if (config->role == SPI_ROLE_MASTER) {
         regval |= (1 << 12);
