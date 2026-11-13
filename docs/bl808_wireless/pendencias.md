@@ -86,6 +86,13 @@ buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   `wifi_ble`; os outros só compilados (`wifi_udp`, `wifi_http`, `wifi_mqtt_pub`).
 
 ### P2
+- **LP: o IPC chega na IRQ +3, não na +35.** Medido na placa em 13/11/2026
+  (`bl809/bancada/lp_clic_probe`): o CLIC do LP tem 48 linhas (`CLICINFO`),
+  e com o IPC do LP desmascarado a linha pendente no LP é a 19 (16 + 3). O
+  `IPC_LP_IRQn = IRQ_NUM_BASE + 35` do `bl808.h` não existe no LP
+  (`CPU_LP_MAX_IRQ_NUM` = 16 + 32). Um código do LP que use `IPC_LP_IRQn`
+  nunca recebe o IPC. Também: a entrada `timer1` do `device_table.c` no M0
+  mistura o bloco do MM (`0x30009000`) com a IRQ do canal 1 do TIMER0 (+37).
 
 - [ ] **SEC e PSRAM:** com o heap na PSRAM (`CONFIG_PSRAM=y`), os ports de mbedtls
   em hardware (`components/crypto/mbedtls/port/hw_acc`) recebem buffers na PSRAM,
