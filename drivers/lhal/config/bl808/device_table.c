@@ -114,6 +114,20 @@ struct bflb_device_s bl808_device_table[] = {
       .sub_idx = 0,
       .dev_type = BFLB_DEVICE_TYPE_PWM,
       .user_data = NULL },
+    /* Second module of the PWM block. Measured on the M1s Dock: its interrupt
+     * is raised on the PWM line of the M0 (shared with pwm_v2_0, see
+     * pwm_int_config) and on no line of the D0. */
+    { .name = BFLB_NAME_PWM_V2_1,
+      .reg_base = PWM_BASE + 0x40,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = BL808_IRQ_PWM,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 1,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_PWM,
+      .user_data = NULL },
     { .name = BFLB_NAME_DMA0_CH0,
       .reg_base = DMA0_BASE + 1 * DMA_CHANNEL_OFFSET,
 #if defined(CPU_M0) || defined(CPU_LP)
