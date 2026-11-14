@@ -10,6 +10,7 @@ sdk_library_add_sources(
     src/bflb_dma.c
     src/bflb_rtc.c
     src/bflb_sec_aes.c
+    src/bflb_sec_irq.c
     src/bflb_sec_sha.c
     src/bflb_sec_trng.c
     src/bflb_spi.c

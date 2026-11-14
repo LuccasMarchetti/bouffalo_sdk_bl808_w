@@ -38,6 +38,14 @@ void bflb_sec_irq_attach(uint8_t sec_type, void (*callback)(void *arg), void *ar
  */
 void bflb_sec_irq_detach(uint8_t sec_type);
 
+/**
+ * @brief Mask or unmask the interrupt of one function of the security engine.
+ *
+ * @param [in] sec_type one of BFLB_SEC_ENG_IRQ_TYPE_*
+ * @param [in] mask true to mask
+ */
+void bflb_sec_int_mask(uint8_t sec_type, bool mask);
+
 #ifdef __cplusplus
 }
 #endif
