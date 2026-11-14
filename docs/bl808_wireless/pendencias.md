@@ -104,15 +104,21 @@ buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   NACK; o certo é `-EIO` na hora (o Zephyr já faz). Uma varredura de 112
   endereços leva 11 s.
 
-- [ ] **SEC e PSRAM:** com o heap na PSRAM (`CONFIG_PSRAM=y`), os ports de mbedtls
-  em hardware (`components/crypto/mbedtls/port/hw_acc`) recebem buffers na PSRAM,
-  que o SEC não lê (`mbedtls_sha1_once_padded` até troca o endereço para o alias
-  `0x2xxxxxxx`). No `wifi_ble` a PSK saiu errada. Hoje o exemplo usa mbedtls em
-  software; o certo é passar por um buffer na RAM interna, como fiz no AES do
-  supplicant (`blcrypto_sec_pka.c`).
-- [ ] **Partição `PSM` ausente:** a tabela de partições do BL808 não tem `PSM`, e o
-  littlefs/easyflash falham (`no valid PSM partition`). O BLE não guarda as chaves
-  de pareamento.
+- [x] **SEC e PSRAM (14/11/2026):** medido direto (`bl809/bancada/sdk_sec`): o
+  motor de segurança não lê nem escreve a PSRAM (SHA 50/50 e AES 20/20 errados
+  com um buffer lá; RAM com cache e flash XIP funcionam). O `lhal` agora passa
+  esses dados por buffers de 256 B na RAM interna (`bflb_sha*_update`,
+  `bflb_sha*_link_update`, `bflb_aes_encrypt/decrypt`, `bflb_aes_link_update`,
+  com o encadeamento do CBC/CTR entre os pedaços). O `wifi_ble` voltou ao
+  mbedtls em hardware com o heap na PSRAM: conecta e pega IP. Ficam de fora
+  `bflb_sha1_once_padded`, CRC32 e GMAC em modo link.
+- [x] **Interrupções do SEC:** `bflb_sec_irq.c` não era compilado; agora é, e
+  `bflb_sec_int_mask()` está no cabeçalho. AES, SHA e TRNG chegam ao ISR no M0.
+- [x] **Partição `PSM` (14/11/2026):** entrada nova na tabela da placa
+  `m1s_dock` (`0x750000`, 64 KB, tipo 6). O littlefs monta e formata na
+  primeira vez. A `bl808dk` continua sem. Falta conferir que o pareamento BLE
+  persiste entre resets.
+- [ ] **LZ4D:** o SDK não tem driver (só a linha de IRQ e o endereço).
 - [ ] **ACL adiado no `bl_hci_wrapper.c`:** quando falta buffer de RX, o pacote ACL
   é copiado e tratado depois, mas no BL808 o `param` aponta para a memória de
   troca do controlador, que é liberada ao fim do callback (aviso do Zephyr). Não

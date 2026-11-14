@@ -140,3 +140,20 @@ len = 0
 header = 0
 # If header is 1 and security is 1, It will be encrypted.
 security = 0
+
+[[pt_entry]]
+type = 6
+# Key-value and littlefs storage (easyflash, BLE bonding keys). Above the 8 MB
+# layout: the M1s module has 16 MB of flash.
+name = "PSM"
+device = 0
+address0 = 0x750000
+size0 = 0x10000
+address1 = 0
+size1 = 0
+# compressed image must set len,normal image can left it to 0
+len = 0
+# If header is 1, it will add the header.
+header = 0
+# If header is 1 and security is 1, It will be encrypted.
+security = 0
