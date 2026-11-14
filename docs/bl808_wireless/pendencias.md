@@ -67,6 +67,7 @@ Resultados (10/11/2026):
 | PSRAM antes da RAM interna no `kmalloc` | `bsp/board/bl808dk/board.c` | Wi-Fi/BLE lentos ou com timeout no `wifi_ble` | criar heap dedicado, ou mudar a ordem de busca no `mm` |
 | Offsets internos do binário nos contornos de bugs (vindos do Zephyr) | `components/wireless/wifi4/bl808_port/bl808_wifi_port.c` | assert ao conectar ou desconectar | conferir os offsets de `sta_info_tab` com o disassembly |
 | Callbacks de interrupção do BLE chamados com argumentos que eles não esperam | `bl_irq_register` | crash no BLE | criar um trampolim sem argumentos |
+| `csi_dcache_clean_range` no E907 (M0) termina com `__DSB()` = `fence iorw,iorw`, que nem sempre espera a escrita de volta (medido no Zephyr em 14/11: o SHA ligado logo depois leu dados velhos em até 271/360; com `fence.i` nunca) | `drivers/lhal/include/arch/risc-v/t-head/Core/Include/core_rv32.h` e todo driver que limpa a cache e liga um mestre do barramento (SEC, DMA) | resultado de SEC/DMA errado de vez em quando, dependendo do layout do código | `fence.i` depois do *clean* no RV32 (como o Zephyr), ou buffers sem cache |
 | Pinos de JTAG GPIO4–7 no M1s Dock | `board_jtag_gpio_init()` | pinos ocupados ou sem acesso no conector | mudar `CONFIG_BL808_JTAG_PIN_BASE` |
 
 Na placa (10/11/2026): prioridade das tarefas do BLE, `wl_init()` em `ALL`
