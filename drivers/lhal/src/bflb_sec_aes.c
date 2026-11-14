@@ -1,6 +1,20 @@
 #include "bflb_sec_aes.h"
 #include "hardware/sec_eng_reg.h"
 
+/*
+ * On the BL808 the security engine does not reach the PSRAM (measured on the
+ * M1s Dock: SHA and AES with a buffer there give wrong results, input or
+ * output). Data there goes through a buffer in the internal RAM.
+ */
+#if defined(BL808)
+#define BFLB_SEC_BOUNCE_SIZE 256
+#define BFLB_SEC_IN_PSRAM(p) (((uintptr_t)(p) >> 27) == (0x50000000UL >> 27))
+#endif
+#if defined(BL808)
+static ATTR_NOCACHE_NOINIT_RAM_SECTION __attribute__((aligned(64))) uint8_t aes_bounce_in[BFLB_SEC_BOUNCE_SIZE];
+static ATTR_NOCACHE_NOINIT_RAM_SECTION __attribute__((aligned(64))) uint8_t aes_bounce_out[BFLB_SEC_BOUNCE_SIZE];
+#endif
+
 #define CONFIG_BFLB_AES_USE_BE
 
 #define BFLB_PUT_LE32(p) ((p[3] << 24) | (p[2] << 16) | (p[1] << 8) | (p[0]))
@@ -158,6 +172,27 @@ int bflb_aes_encrypt(struct bflb_device_s *dev,
                      uint8_t *output,
                      uint32_t len)
 {
+#if defined(BL808)
+    if (BFLB_SEC_IN_PSRAM(input) || BFLB_SEC_IN_PSRAM(output)) {
+        while (len > 0) {
+            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : len;
+            int ret;
+
+            arch_memcpy_fast(aes_bounce_in, input, n);
+            ret = bflb_aes_encrypt(dev, aes_bounce_in, iv, aes_bounce_out, n);
+            if (ret != 0) {
+                return ret;
+            }
+            arch_memcpy_fast(output, aes_bounce_out, n);
+            /* the next part goes on from the last chaining value */
+            iv = NULL;
+            input += n;
+            output += n;
+            len -= n;
+        }
+        return 0;
+    }
+#endif
 #ifdef romapi_bflb_aes_encrypt
     return romapi_bflb_aes_encrypt(dev, input, iv, output, len);
 #else
@@ -234,6 +269,27 @@ int bflb_aes_decrypt(struct bflb_device_s *dev,
                      uint8_t *output,
                      uint32_t len)
 {
+#if defined(BL808)
+    if (BFLB_SEC_IN_PSRAM(input) || BFLB_SEC_IN_PSRAM(output)) {
+        while (len > 0) {
+            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : len;
+            int ret;
+
+            arch_memcpy_fast(aes_bounce_in, input, n);
+            ret = bflb_aes_decrypt(dev, aes_bounce_in, iv, aes_bounce_out, n);
+            if (ret != 0) {
+                return ret;
+            }
+            arch_memcpy_fast(output, aes_bounce_out, n);
+            /* the next part goes on from the last chaining value */
+            iv = NULL;
+            input += n;
+            output += n;
+            len -= n;
+        }
+        return 0;
+    }
+#endif
 #ifdef romapi_bflb_aes_decrypt
     return romapi_bflb_aes_decrypt(dev, input, iv, output, len);
 #else
@@ -350,6 +406,31 @@ int bflb_aes_link_update(struct bflb_device_s *dev,
                          uint8_t *output,
                          uint32_t len)
 {
+#if defined(BL808)
+    if (BFLB_SEC_IN_PSRAM(input) || BFLB_SEC_IN_PSRAM(output)) {
+        uint32_t newiv_dis = *(uint32_t *)(uintptr_t)link_addr & (1U << 14);
+
+        while (len > 0) {
+            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : len;
+            int ret;
+
+            arch_memcpy_fast(aes_bounce_in, input, n);
+            ret = bflb_aes_link_update(dev, link_addr, aes_bounce_in, aes_bounce_out, n);
+            if (ret != 0) {
+                *(uint32_t *)(uintptr_t)link_addr = (*(uint32_t *)(uintptr_t)link_addr & ~(1U << 14)) | newiv_dis;
+                return ret;
+            }
+            arch_memcpy_fast(output, aes_bounce_out, n);
+            /* the next part goes on from the last chaining value (aes_newiv_dis) */
+            *(uint32_t *)(uintptr_t)link_addr |= (1U << 14);
+            input += n;
+            output += n;
+            len -= n;
+        }
+        *(uint32_t *)(uintptr_t)link_addr = (*(uint32_t *)(uintptr_t)link_addr & ~(1U << 14)) | newiv_dis;
+        return 0;
+    }
+#endif
 #ifdef romapi_bflb_aes_link_update
     return romapi_bflb_aes_link_update(dev, link_addr, input, output, len);
 #else

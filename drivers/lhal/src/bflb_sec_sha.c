@@ -1,6 +1,19 @@
 #include "bflb_sec_sha.h"
 #include "hardware/sec_eng_reg.h"
 
+/*
+ * On the BL808 the security engine does not reach the PSRAM (measured on the
+ * M1s Dock: SHA and AES with a buffer there give wrong results, input or
+ * output). Data there goes through a buffer in the internal RAM.
+ */
+#if defined(BL808)
+#define BFLB_SEC_BOUNCE_SIZE 256
+#define BFLB_SEC_IN_PSRAM(p) (((uintptr_t)(p) >> 27) == (0x50000000UL >> 27))
+#endif
+#if defined(BL808)
+static ATTR_NOCACHE_NOINIT_RAM_SECTION __attribute__((aligned(64))) uint8_t sha_bounce[BFLB_SEC_BOUNCE_SIZE];
+#endif
+
 #define PUT_UINT32_BE(n, b, i)               \
     {                                        \
         (b)[(i)] = (uint8_t)((n) >> 24);     \
@@ -101,6 +114,23 @@ void bflb_sha512_start(struct bflb_device_s *dev, struct bflb_sha512_ctx_s *ctx)
 
 int bflb_sha1_update(struct bflb_device_s *dev, struct bflb_sha1_ctx_s *ctx, const uint8_t *input, uint32_t len)
 {
+#if defined(BL808)
+    if (BFLB_SEC_IN_PSRAM(input)) {
+        while (len > 0) {
+            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : (uint32_t)len;
+            int ret;
+
+            arch_memcpy_fast(sha_bounce, input, n);
+            ret = bflb_sha1_update(dev, ctx, sha_bounce, n);
+            if (ret != 0) {
+                return ret;
+            }
+            input += n;
+            len -= n;
+        }
+        return 0;
+    }
+#endif
 #ifdef romapi_bflb_sha1_update
     return romapi_bflb_sha1_update(dev, ctx, input, len);
 #else
@@ -280,6 +310,23 @@ int bflb_sha256_update(struct bflb_device_s *dev, struct bflb_sha256_ctx_s *ctx,
 
 int bflb_sha512_update(struct bflb_device_s *dev, struct bflb_sha512_ctx_s *ctx, const uint8_t *input, uint64_t len)
 {
+#if defined(BL808)
+    if (BFLB_SEC_IN_PSRAM(input)) {
+        while (len > 0) {
+            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : (uint32_t)len;
+            int ret;
+
+            arch_memcpy_fast(sha_bounce, input, n);
+            ret = bflb_sha512_update(dev, ctx, sha_bounce, n);
+            if (ret != 0) {
+                return ret;
+            }
+            input += n;
+            len -= n;
+        }
+        return 0;
+    }
+#endif
 #ifdef romapi_bflb_sha512_update
     return romapi_bflb_sha512_update(dev, ctx, input, len);
 #else
@@ -690,6 +737,23 @@ int bflb_sha1_link_update(struct bflb_device_s *dev,
                           const uint8_t *input,
                           uint32_t len)
 {
+#if defined(BL808)
+    if (BFLB_SEC_IN_PSRAM(input)) {
+        while (len > 0) {
+            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : (uint32_t)len;
+            int ret;
+
+            arch_memcpy_fast(sha_bounce, input, n);
+            ret = bflb_sha1_link_update(dev, ctx, sha_bounce, n);
+            if (ret != 0) {
+                return ret;
+            }
+            input += n;
+            len -= n;
+        }
+        return 0;
+    }
+#endif
 #ifdef romapi_bflb_sha1_link_update
     return romapi_bflb_sha1_link_update(dev, ctx, input, len);
 #else
@@ -800,6 +864,23 @@ int bflb_sha512_link_update(struct bflb_device_s *dev,
                             const uint8_t *input,
                             uint64_t len)
 {
+#if defined(BL808)
+    if (BFLB_SEC_IN_PSRAM(input)) {
+        while (len > 0) {
+            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : (uint32_t)len;
+            int ret;
+
+            arch_memcpy_fast(sha_bounce, input, n);
+            ret = bflb_sha512_link_update(dev, ctx, sha_bounce, n);
+            if (ret != 0) {
+                return ret;
+            }
+            input += n;
+            len -= n;
+        }
+        return 0;
+    }
+#endif
 #ifdef romapi_bflb_sha512_link_update
     return romapi_bflb_sha512_link_update(dev, ctx, input, len);
 #else
