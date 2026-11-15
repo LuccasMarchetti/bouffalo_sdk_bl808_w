@@ -114,6 +114,7 @@
 #define BFLB_DEVICE_TYPE_SEC_GMAC   53
 #define BFLB_DEVICE_TYPE_TOUCH_V2   54
 #define BFLB_DEVICE_TYPE_DMA2D      55
+#define BFLB_DEVICE_TYPE_LZ4D       56
 
 struct bflb_device_s {
     const char *name;

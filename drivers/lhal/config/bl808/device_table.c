@@ -533,6 +533,17 @@ struct bflb_device_s bl808_device_table[] = {
       .sub_idx = 0,
       .dev_type = BFLB_DEVICE_TYPE_CKS,
       .user_data = NULL },
+    { .name = BFLB_NAME_LZ4D,
+      .reg_base = LZ4D_BASE,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = BL808_IRQ_LZ4D,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 0,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_LZ4D,
+      .user_data = NULL },
     { .name = BFLB_NAME_MJPEG,
       .reg_base = MJPEG_BASE,
 #if defined(CPU_M0) || defined(CPU_LP)
