@@ -533,6 +533,41 @@ struct bflb_device_s bl808_device_table[] = {
       .sub_idx = 0,
       .dev_type = BFLB_DEVICE_TYPE_CKS,
       .user_data = NULL },
+    /* One IPC block per core: the owner reads and acknowledges it, any core
+     * sets bits in it with bflb_ipc_trig(). The interrupt goes to the owner. */
+    { .name = BFLB_NAME_IPC0_CH0,
+      .reg_base = IPC0_BASE,
+#if defined(CPU_M0)
+      .irq_num = BL808_IRQ_IPC_M0,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 0,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_IPC,
+      .user_data = NULL },
+    { .name = BFLB_NAME_IPC1_CH0,
+      .reg_base = IPC1_BASE,
+#if defined(CPU_LP)
+      .irq_num = BL808_IRQ_NUM_BASE + 3,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 1,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_IPC,
+      .user_data = NULL },
+    { .name = BFLB_NAME_IPC2_CH0,
+      .reg_base = IPC2_BASE,
+#if defined(CPU_D0)
+      .irq_num = BL808_IRQ_IPC_D0,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 2,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_IPC,
+      .user_data = NULL },
     { .name = BFLB_NAME_LZ4D,
       .reg_base = LZ4D_BASE,
 #if defined(CPU_M0) || defined(CPU_LP)
