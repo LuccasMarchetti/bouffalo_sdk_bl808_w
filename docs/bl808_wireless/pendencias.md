@@ -122,6 +122,12 @@ valia para a PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   `m1s_dock` (`0x750000`, 64 KB, tipo 6). O littlefs monta e formata na
   primeira vez. A `bl808dk` continua sem. Falta conferir que o pareamento BLE
   persiste entre resets.
+- [x] **IPC (15/11/2026):** `bflb_ipc` compilado para o BL808 e entradas
+  `ipc0_ch0` (bloco do M0), `ipc1_ch0` (LP) e `ipc2_ch0` (D0). M0 ↔ D0 testado
+  (`bl809/bancada/sdk_ipc`): 32 bits, máscara. No LP a interrupção chega na
+  linha +3 (não na +35 do `bl808.h`); LP não testado pelo SDK.
+- [x] **Câmera (CSI) e MJPEG no D0 (15/11/2026):** `bl809/bancada/sdk_mm`.
+  O `bflb_check_cache_addr()` do D0 também não contava a PSRAM (corrigido).
 - [x] **LZ4D (15/11/2026):** driver novo `bflb_lz4d` (`drivers/lhal`), entrada
   `lz4d` na tabela. Testado com `bl809/bancada/sdk_lz4d`. O hardware escreve
   4 bytes além da saída, não confere o checksum de bloco e **não para num
