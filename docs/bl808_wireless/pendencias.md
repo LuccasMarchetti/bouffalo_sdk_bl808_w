@@ -110,8 +110,10 @@ buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   esses dados por buffers de 256 B na RAM interna (`bflb_sha*_update`,
   `bflb_sha*_link_update`, `bflb_aes_encrypt/decrypt`, `bflb_aes_link_update`,
   com o encadeamento do CBC/CTR entre os pedaços). O `wifi_ble` voltou ao
-  mbedtls em hardware com o heap na PSRAM: conecta e pega IP. Ficam de fora
-  `bflb_sha1_once_padded`, CRC32 e GMAC em modo link.
+  mbedtls em hardware com o heap na PSRAM: conecta e pega IP. Também cobertos
+  (14/11, 2ª rodada): CRC32 e GMAC em modo link (em pedaços, acumulando) e
+  `bflb_sha1_once_padded` (até 4 blocos; mais que isso devolve `-ENOMEM`).
+  O contexto do modo link continua tendo de ficar em RAM interna sem cache.
 - [x] **Interrupções do SEC:** `bflb_sec_irq.c` não era compilado; agora é, e
   `bflb_sec_int_mask()` está no cabeçalho. AES, SHA e TRNG chegam ao ISR no M0.
 - [x] **Partição `PSM` (14/11/2026):** entrada nova na tabela da placa
@@ -119,6 +121,16 @@ buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   primeira vez. A `bl808dk` continua sem. Falta conferir que o pareamento BLE
   persiste entre resets.
 - [ ] **LZ4D:** o SDK não tem driver (só a linha de IRQ e o endereço).
+- [x] **USB device no BL808 (14/11/2026):** `examples/cherryusb/cherryusb_cli`
+  (o README só lista o BL616) compila e roda no M0 do M1s Dock sem os hosts e
+  sem áudio/vídeo (com tudo ligado a `.bss` passa da RAM em 63 KB): CDC-ACM
+  (eco de 64 KB sem erro), MSC em RAM e o composto CDC + MSC enumeram em
+  high-speed. No PC, o ModemManager ocupa a `ttyACM` nos primeiros segundos.
+- [ ] **USB host:** não testado (falta adaptador OTG e um dispositivo).
+- [ ] **Boot pela USB:** com a flash sem cabeçalho (modo de gravação pela
+  UART) o bootrom não aparece no barramento USB do PC.
+- [ ] **EMAC:** `emac_basic` e `lwip_tcp` compilam com a `m1s_dock`; o Dock
+  não tem PHY.
 - [ ] **ACL adiado no `bl_hci_wrapper.c`:** quando falta buffer de RX, o pacote ACL
   é copiado e tratado depois, mas no BL808 o `param` aponta para a memória de
   troca do controlador, que é liberada ao fim do callback (aviso do Zephyr). Não

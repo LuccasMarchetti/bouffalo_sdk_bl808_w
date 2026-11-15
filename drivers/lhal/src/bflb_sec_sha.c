@@ -237,6 +237,16 @@ int bflb_sha1_update(struct bflb_device_s *dev, struct bflb_sha1_ctx_s *ctx, con
 
 int bflb_sha1_once_padded(struct bflb_device_s *dev, const uint8_t *input, uint8_t *output, uint32_t nblock)
 {
+#if defined(BL808)
+    /* The engine can not reach the PSRAM; one-shot, so it has to fit */
+    if (BFLB_SEC_IN_PSRAM(input)) {
+        if (nblock * 64 > BFLB_SEC_BOUNCE_SIZE) {
+            return -ENOMEM;
+        }
+        arch_memcpy_fast(sha_bounce, input, nblock * 64);
+        input = sha_bounce;
+    }
+#endif
 #ifdef romapi_bflb_sha1_once_padded
     return romapi_bflb_sha1_once_padded(dev, input, output, nblock);
 #else
@@ -1176,6 +1186,29 @@ void bflb_group1_release_sha_access(struct bflb_device_s *dev)
 
 int bflb_sha_crc32_link_work(struct bflb_device_s *dev, uint32_t addr, const uint8_t *in, uint32_t len, uint8_t *out)
 {
+#if defined(BL808)
+    /* The engine can not reach the PSRAM: feed it in parts, accumulating */
+    if (BFLB_SEC_IN_PSRAM(in) && len > 0) {
+        volatile uint32_t *ctrl = (volatile uint32_t *)(uintptr_t)addr;
+        uint32_t hash_sel = *ctrl & (1U << 6);
+        int ret = 0;
+
+        while (len > 0) {
+            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : len;
+
+            arch_memcpy_fast(sha_bounce, in, n);
+            ret = bflb_sha_crc32_link_work(dev, addr, sha_bounce, n, out);
+            if (ret != 0) {
+                break;
+            }
+            *ctrl |= (1U << 6);
+            in += n;
+            len -= n;
+        }
+        *ctrl = (*ctrl & ~(1U << 6)) | hash_sel;
+        return ret;
+    }
+#endif
 #ifdef romapi_bflb_sha_crc32_link_work
     return romapi_bflb_sha_crc32_link_work(dev, addr, in, len, out);
 #else
