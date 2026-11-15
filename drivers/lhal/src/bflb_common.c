@@ -314,6 +314,12 @@ bool bflb_check_cache_addr(const void *addr)
     if ((a & 0xFFFF0000UL) >= 0x62020000UL) {
         return true;
     }
+#if defined(BL808)
+    /* The PSRAM is reached through the D-cache too */
+    if (a >= 0x50000000UL && a < 0x54000000UL) {
+        return true;
+    }
+#endif
     return false;
 }
 void *bflb_get_no_cache_addr(const void *addr)
