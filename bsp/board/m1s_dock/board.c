@@ -67,6 +67,21 @@ static void board_bancada_init(void)
     printf("BANCADA: cabecalho %s (ret %d)\r\n", ret == 0 ? "apagado" : "NAO apagado", ret);
 #endif
 }
+
+#if defined(CONFIG_BL808_BANCADA_KEEP_BOOT) && defined(CONFIG_SHELL)
+#include "shell.h"
+
+/* With KEEP_BOOT the image survives resets: this ends the test by hand */
+static int cmd_bancada_isp(int argc, char **argv)
+{
+    int ret = bflb_flash_erase(0, 4096);
+
+    printf("BANCADA: cabecalho apagado (ret %d), reiniciando\r\n", ret);
+    GLB_SW_POR_Reset();
+    return 0;
+}
+SHELL_CMD_EXPORT_ALIAS(cmd_bancada_isp, bancada_isp, erase the boot header and reset);
+#endif
 #endif
 
 
