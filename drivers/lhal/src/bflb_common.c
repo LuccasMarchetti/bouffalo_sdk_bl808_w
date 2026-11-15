@@ -351,6 +351,10 @@ bool bflb_check_cache_addr(const void *addr)
     if (a >= 0x3EFF0000UL && a < (0x3EFF0000UL + 0x80000UL)) {
         return true;
     }
+    /* The PSRAM, as on the M0 */
+    if (a >= 0x50000000UL && a < 0x54000000UL) {
+        return true;
+    }
     return false;
 }
 void *bflb_get_no_cache_addr(const void *addr)
