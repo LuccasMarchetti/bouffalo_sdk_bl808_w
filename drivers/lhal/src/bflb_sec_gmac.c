@@ -1,13 +1,6 @@
 #include "bflb_sec_gmac.h"
 #include "hardware/sec_eng_reg.h"
 
-#if defined(BL808)
-/* The engine can not reach the PSRAM: such data goes through this buffer */
-#define BFLB_SEC_BOUNCE_SIZE 256
-#define BFLB_SEC_IN_PSRAM(p) (((uintptr_t)(p) >> 27) == (0x50000000UL >> 27))
-static ATTR_NOCACHE_NOINIT_RAM_SECTION __attribute__((aligned(64))) uint8_t gmac_bounce[BFLB_SEC_BOUNCE_SIZE];
-#endif
-
 void bflb_sec_gmac_le_enable(struct bflb_device_s *dev)
 {
 #ifdef romapi_bflb_sec_gmac_le_enable
@@ -49,27 +42,6 @@ void bflb_sec_gmac_link_enable(struct bflb_device_s *dev, uint8_t enable)
 
 int bflb_sec_gmac_link_work(struct bflb_device_s *dev, uint32_t addr, const uint8_t *in, uint32_t len, uint8_t *out)
 {
-#if defined(BL808)
-    /* The result in the link context accumulates across calls */
-    if (BFLB_SEC_IN_PSRAM(in) && len > 0) {
-        if (len % 16 != 0) {
-            return -EINVAL;
-        }
-        while (len > 0) {
-            uint32_t n = len > BFLB_SEC_BOUNCE_SIZE ? BFLB_SEC_BOUNCE_SIZE : len;
-            int ret;
-
-            arch_memcpy_fast(gmac_bounce, in, n);
-            ret = bflb_sec_gmac_link_work(dev, addr, gmac_bounce, n, out);
-            if (ret != 0) {
-                return ret;
-            }
-            in += n;
-            len -= n;
-        }
-        return 0;
-    }
-#endif
 #ifdef romapi_bflb_sec_gmac_link_work
     return romapi_bflb_sec_gmac_link_work(dev, addr, in, len, out);
 #else
