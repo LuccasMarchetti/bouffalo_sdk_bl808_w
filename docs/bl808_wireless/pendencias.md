@@ -55,8 +55,8 @@ Resultados (10/11/2026):
   e escreve. Com o intervalo de anúncio padrão do bluetoothd, o tempo de 3 s do
   exemplo para criar a conexão às vezes acaba antes.
 - **T11** Wi-Fi com `iperf` a 8,9 Mbit/s por 40 s e, no meio, conexão BLE com
-  descoberta GATT, sem queda de vazão. lwIP na PSRAM e mbedtls em software (o SEC
-  não lê a PSRAM: o SHA em hardware deu PSK errada).
+  descoberta GATT, sem queda de vazão. lwIP na PSRAM e mbedtls em software (na época; a causa era a cache
+  da PSRAM, ver P2 abaixo: hoje o exemplo usa o mbedtls em hardware).
 
 ## 2. Riscos conhecidos, a verificar nos testes (P1/P2)
 
@@ -72,8 +72,8 @@ Resultados (10/11/2026):
 
 Na placa (10/11/2026): prioridade das tarefas do BLE, `wl_init()` em `ALL`
 (Wi-Fi + BLE juntos), offsets do `sta_info_tab` e callbacks de interrupção do BLE
-não deram problema. A PSRAM no heap deu: o SEC (SHA/AES em hardware) não lê
-buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
+não deram problema. A PSRAM no heap deu: a manutenção de cache do SDK não
+valia para a PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
 `CONFIG_BL808_JTAG_PIN_BASE=0` (GPIO0–3).
 
 ## 3. Desenvolvimento
@@ -104,23 +104,29 @@ buffers na PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   NACK; o certo é `-EIO` na hora (o Zephyr já faz). Uma varredura de 112
   endereços leva 11 s.
 
-- [x] **SEC e PSRAM (14/11/2026):** medido direto (`bl809/bancada/sdk_sec`): o
-  motor de segurança não lê nem escreve a PSRAM (SHA 50/50 e AES 20/20 errados
-  com um buffer lá; RAM com cache e flash XIP funcionam). O `lhal` agora passa
-  esses dados por buffers de 256 B na RAM interna (`bflb_sha*_update`,
-  `bflb_sha*_link_update`, `bflb_aes_encrypt/decrypt`, `bflb_aes_link_update`,
-  com o encadeamento do CBC/CTR entre os pedaços). O `wifi_ble` voltou ao
-  mbedtls em hardware com o heap na PSRAM: conecta e pega IP. Também cobertos
-  (14/11, 2ª rodada): CRC32 e GMAC em modo link (em pedaços, acumulando) e
-  `bflb_sha1_once_padded` (até 4 blocos; mais que isso devolve `-ENOMEM`).
-  O contexto do modo link continua tendo de ficar em RAM interna sem cache.
+- [x] **SEC e PSRAM (14/11/2026, corrigido em 15/11):** o SEC lê e escreve a
+  PSRAM. Os resultados errados (SHA 50/50, AES 20/20, e a PSK errada do
+  `wifi_ble`) vinham da cache: no M0 o `bflb_check_cache_addr()` não contava a
+  PSRAM (`0x50000000`–`0x54000000`) como cacheável, e as
+  `bflb_l1c_dcache_*_range()` não faziam nada ali. Corrigido no
+  `bflb_common.c`; a cópia por RAM interna que eu tinha posto no `lhal` foi
+  revertida. Medido sem cópia (`bl809/bancada/sdk_sec` dentro do `sdk_lz4d`):
+  SHA, AES (entrada ou saída na PSRAM), modo link, CRC32 e GMAC certos; o
+  `wifi_ble` com mbedtls em hardware e heap na PSRAM conecta, anuncia e
+  responde ao ping. Quem chama o `lhal` direto continua cuidando da cache
+  (*clean* na entrada, *clean + invalidate* na saída), como o port do mbedtls.
+  O contexto do modo link continua em RAM interna sem cache.
 - [x] **Interrupções do SEC:** `bflb_sec_irq.c` não era compilado; agora é, e
   `bflb_sec_int_mask()` está no cabeçalho. AES, SHA e TRNG chegam ao ISR no M0.
 - [x] **Partição `PSM` (14/11/2026):** entrada nova na tabela da placa
   `m1s_dock` (`0x750000`, 64 KB, tipo 6). O littlefs monta e formata na
   primeira vez. A `bl808dk` continua sem. Falta conferir que o pareamento BLE
   persiste entre resets.
-- [ ] **LZ4D:** o SDK não tem driver (só a linha de IRQ e o endereço).
+- [x] **LZ4D (15/11/2026):** driver novo `bflb_lz4d` (`drivers/lhal`), entrada
+  `lz4d` na tabela. Testado com `bl809/bancada/sdk_lz4d`. O hardware escreve
+  4 bytes além da saída, não confere o checksum de bloco e **não para num
+  bloco malformado** (segue escrevendo): só dados confiáveis, sempre com tempo
+  limite. Ver o cabeçalho `bflb_lz4d.h`.
 - [x] **USB device no BL808 (14/11/2026):** `examples/cherryusb/cherryusb_cli`
   (o README só lista o BL616) compila e roda no M0 do M1s Dock sem os hosts e
   sem áudio/vídeo (com tudo ligado a `.bss` passa da RAM em 63 KB): CDC-ACM
