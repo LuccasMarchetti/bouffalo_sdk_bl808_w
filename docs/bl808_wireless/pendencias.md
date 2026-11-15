@@ -126,6 +126,9 @@ valia para a PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   `ipc0_ch0` (bloco do M0), `ipc1_ch0` (LP) e `ipc2_ch0` (D0). M0 ↔ D0 testado
   (`bl809/bancada/sdk_ipc`): 32 bits, máscara. No LP a interrupção chega na
   linha +3 (não na +35 do `bl808.h`); LP não testado pelo SDK.
+- [x] **DMA2D (15/11/2026):** `bflb_dma2d` vale para o BL808 (entradas
+  `dma2d_ch0`/`dma2d_ch1`, interrupções +45/+46 no D0): cópia, espelhos,
+  rotações e preenchimento conferidos no D0.
 - [x] **Câmera (CSI) e MJPEG no D0 (15/11/2026):** `bl809/bancada/sdk_mm`.
   O `bflb_check_cache_addr()` do D0 também não contava a PSRAM (corrigido).
 - [x] **LZ4D (15/11/2026):** driver novo `bflb_lz4d` (`drivers/lhal`), entrada
