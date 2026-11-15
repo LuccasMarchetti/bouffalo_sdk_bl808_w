@@ -568,6 +568,28 @@ struct bflb_device_s bl808_device_table[] = {
       .sub_idx = 0,
       .dev_type = BFLB_DEVICE_TYPE_IPC,
       .user_data = NULL },
+    { .name = BFLB_NAME_DMA2D_CH0,
+      .reg_base = DMA2D_BASE + 1 * 0x100,
+#if defined(CPU_D0)
+      .irq_num = BL808_IRQ_DMA2D_INT0,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 0,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_DMA2D,
+      .user_data = NULL },
+    { .name = BFLB_NAME_DMA2D_CH1,
+      .reg_base = DMA2D_BASE + 2 * 0x100,
+#if defined(CPU_D0)
+      .irq_num = BL808_IRQ_DMA2D_INT1,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 0,
+      .sub_idx = 1,
+      .dev_type = BFLB_DEVICE_TYPE_DMA2D,
+      .user_data = NULL },
     { .name = BFLB_NAME_LZ4D,
       .reg_base = LZ4D_BASE,
 #if defined(CPU_M0) || defined(CPU_LP)

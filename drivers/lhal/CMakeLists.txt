@@ -176,6 +176,7 @@ elseif("${CHIP}" STREQUAL "bl808")
         src/bflb_touch.c
         src/bflb_lz4d.c
         src/bflb_ipc.c
+        src/bflb_dma2d.c
     )
 elseif("${CHIP}" STREQUAL "bl606p")
   sdk_library_add_sources(

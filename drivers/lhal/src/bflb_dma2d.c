@@ -8,7 +8,12 @@ struct bflb_dma2d_irq_callback {
     void *arg;
 };
 
+#if defined(BL808)
+/* MM domain; one interrupt line per channel, both served by dma2d_isr() */
+const uint32_t dma2d_base[] = { 0x30006000 };
+#else
 const uint32_t dma2d_base[] = { 0x20005000 };
+#endif
 struct bflb_dma2d_irq_callback dma2d_callback[1][DMA2D_CHANNEL_MAX];
 
 void dma2d_isr(int irq, void *arg)
@@ -19,7 +24,7 @@ void dma2d_isr(int irq, void *arg)
     putreg32(regval, dma2d_base[0] + DMA2D_DMA_INTTCCLEAR_OFFSET);
 
     for (uint8_t i = 0; i < DMA2D_CHANNEL_MAX; i++) {
-        if (regval & (1 << i)) {
+        if ((regval & (1 << i)) && dma2d_callback[0][i].handler != NULL) {
             dma2d_callback[0][i].handler(dma2d_callback[0][i].arg);
         }
     }
