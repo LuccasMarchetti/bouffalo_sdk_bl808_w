@@ -590,6 +590,24 @@ struct bflb_device_s bl808_device_table[] = {
       .sub_idx = 1,
       .dev_type = BFLB_DEVICE_TYPE_DMA2D,
       .user_data = NULL },
+    { .name = BFLB_NAME_AUDIO,
+      .reg_base = AUDIO_BASE,
+      .irq_num = BL808_IRQ_AUDIO, /* +4 on the M0 and the LP, +64 on the D0 */
+      .idx = 0,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_AUDIO,
+      .user_data = NULL },
+    { .name = BFLB_NAME_AUPDM,
+      .reg_base = AUPDM_BASE,
+#if defined(CPU_M0) || defined(CPU_LP)
+      .irq_num = BL808_IRQ_AUPDM_TOUCH,
+#else
+      .irq_num = 0xff,
+#endif
+      .idx = 1,
+      .sub_idx = 0,
+      .dev_type = BFLB_DEVICE_TYPE_AUDIO,
+      .user_data = NULL },
     { .name = BFLB_NAME_LZ4D,
       .reg_base = LZ4D_BASE,
 #if defined(CPU_M0) || defined(CPU_LP)

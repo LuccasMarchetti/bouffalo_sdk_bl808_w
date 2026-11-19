@@ -262,6 +262,9 @@
 #define DMA_ADDR_ADC_RDR     (0x20002000 + 0x04)
 #define DMA_ADDR_DAC_TDR     (0x20002000 + 0x48)
 #define DMA_ADDR_IR_TDR      (0x2000A600 + 0x88)
+#define DMA_ADDR_AUDIO_RDR   (0x20055000 + 0x88)
+#define DMA_ADDR_AUDIO_TDR   (0x20055000 + 0x94)
+#define DMA_ADDR_AUPDM_RDR   (0x2000AC00 + 0x88)
 #define DMA_ADDR_WO_TDR      (0x20000000 + 0xB04)
 
 /**
@@ -290,6 +293,8 @@
 #define DMA_REQUEST_I2C1_TX  0x0000000F
 #define DMA_REQUEST_I2S_RX   0x00000010
 #define DMA_REQUEST_I2S_TX   0x00000011
+/* aupdm RX: the reference manual figure has PDM RX on request 18 */
+#define DMA_REQUEST_AUPDM_RX 0x00000012
 /* DBI is only reachable on MMSYS DMA2 (idx == 2); request numbering is
  * controller-local, so this intentionally overlaps DMA_REQUEST_ADC, which
  * is only used on DMA0/DMA1. */

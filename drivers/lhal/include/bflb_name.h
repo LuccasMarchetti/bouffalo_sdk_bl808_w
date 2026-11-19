@@ -136,6 +136,8 @@
 #define BFLB_NAME_WO             "wo"
 #define BFLB_NAME_CKS            "cks"
 #define BFLB_NAME_LZ4D           "lz4d"
+#define BFLB_NAME_AUDIO          "audio"
+#define BFLB_NAME_AUPDM          "aupdm"
 #define BFLB_NAME_KYS            "kys"
 #define BFLB_NAME_CSI            "csi"
 #define BFLB_NAME_MJPEG          "mjpeg"

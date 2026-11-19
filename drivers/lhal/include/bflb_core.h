@@ -115,6 +115,7 @@
 #define BFLB_DEVICE_TYPE_TOUCH_V2   54
 #define BFLB_DEVICE_TYPE_DMA2D      55
 #define BFLB_DEVICE_TYPE_LZ4D       56
+#define BFLB_DEVICE_TYPE_AUDIO      57
 
 struct bflb_device_s {
     const char *name;
