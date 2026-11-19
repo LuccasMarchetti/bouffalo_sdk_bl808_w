@@ -106,7 +106,7 @@ static struct bflb_device_s *rtc;
 static void system_clock_init(void)
 {
     /* wifipll/audiopll */
-    GLB_Power_On_XTAL_And_PLL_CLK(GLB_XTAL_40M, GLB_PLL_WIFIPLL | GLB_PLL_CPUPLL | GLB_PLL_UHSPLL | GLB_PLL_MIPIPLL);
+    GLB_Power_On_XTAL_And_PLL_CLK(GLB_XTAL_40M, GLB_PLL_WIFIPLL | GLB_PLL_CPUPLL | GLB_PLL_UHSPLL | GLB_PLL_MIPIPLL | GLB_PLL_AUPLL);
 
     GLB_Set_MCU_System_CLK(GLB_MCU_SYS_CLK_WIFIPLL_320M);
     GLB_Set_DSP_System_CLK(GLB_DSP_SYS_CLK_CPUPLL_400M);
