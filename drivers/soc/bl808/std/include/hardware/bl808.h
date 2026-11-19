@@ -430,7 +430,7 @@ typedef enum {
 #define I2C1_BASE        ((uint32_t)0x2000a900)
 #define UART2_BASE       ((uint32_t)0x2000aa00)
 #define I2S_BASE         ((uint32_t)0x2000ab00)
-#define PDM0_BASE        ((uint32_t)0x2000a000)
+#define PDM0_BASE        ((uint32_t)0x2000ac00)
 #define LZ4D_BASE        ((uint32_t)0x2000ad00)
 #define QSPI_BASE        ((uint32_t)0x2000b000)
 #define SF_CTRL_BASE     ((uint32_t)0x2000b000)
