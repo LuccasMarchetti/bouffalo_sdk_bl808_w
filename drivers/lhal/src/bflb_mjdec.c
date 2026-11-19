@@ -651,7 +651,7 @@ void bflb_mjdec_push_jpeg(struct bflb_device_s *dev, void *frame)
 #ifdef romapi_bflb_mjdec_push_jpeg
     romapi_bflb_mjdec_push_jpeg(dev, frame);
 #else
-    putreg32((uint32_t)frame | MJDEC_REG_JP_PUSH, dev->reg_base + MJDEC_JDEC_FRAM_PUSH_OFFSET);
+    putreg32((uint32_t)(uintptr_t)frame | MJDEC_REG_JP_PUSH, dev->reg_base + MJDEC_JDEC_FRAM_PUSH_OFFSET);
 #endif
 }
 

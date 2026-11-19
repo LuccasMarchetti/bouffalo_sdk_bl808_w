@@ -150,6 +150,7 @@
 /* CODEC_SUBSYS */
 #define CODEC_MISC_BASE ((uint32_t)0x30020000)
 #define MJPEG_BASE      ((uint32_t)0x30021000)
+#define MJDEC_BASE      ((uint32_t)0x30023000) /* JDEC (reference manual) */
 #define VIDEO_BASE      ((uint32_t)0x30022000)
 #define MJPEG_DEC_BASE  ((uint32_t)0x30023000)
 #define BL_CNN_BASE     ((uint32_t)0x30024000)
