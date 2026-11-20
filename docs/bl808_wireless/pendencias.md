@@ -212,3 +212,14 @@ valia para a PSRAM (ver P2 abaixo). No M1s Dock o JTAG fica no slot micro SD:
   compilar (`portBYTE_ALIGNMENT`). Teste: `examples/freertos_vector`.
 - [x] Testes T1–T15 na placa (10/11/2026), com as correções: AES do supplicant sem
   cache, pool de pbufs, pilha de 4 KB no M0, 4 buffers de TX do BLE, mutex do SEC.
+
+## Baixo consumo (E8.3 da bancada, 19/11/2026)
+- `drivers/soc/bl808/std/src/bl808_pm.c` (novo): PDS 1/2/3/7 e HBN 0/1, testados no
+  M1s Dock pelo timer do PDS, pelo RTC, pelo pino AON (GPIO15), pelo ACOMP0 e pelo
+  GPIO do GLB. Exemplos em `examples/pmu/bl808`.
+- Não funciona: o despertar pelo GPIO do próprio PDS (fonte 13; `PDS_GPIO_STAT` não
+  acende nem acordado). Use o GPIO do GLB (fonte 12).
+- Prende o chip: PDS com o cristal e os PLLs desligados (`xtalOff`, `*pllOff`), também
+  com o bandgap ligado e o f32k no RC32K. O watchdog não dispara no PDS. Investigar
+  só com alguém perto do RST.
+- Sem medida de corrente.
