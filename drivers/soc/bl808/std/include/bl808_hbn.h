@@ -638,7 +638,7 @@ BL_Sts_Type HBN_Get_INT_State(HBN_INT_Type irqType);
 uint8_t HBN_Get_Pin_Wakeup_Mode(void);
 BL_Err_Type HBN_Clear_IRQ(HBN_INT_Type irqType);
 BL_Err_Type HBN_Hw_Pu_Pd_Cfg(uint8_t enable);
-BL_Err_Type HBN_Pin_WakeUp_Mask(uint8_t maskVal);
+BL_Err_Type HBN_Pin_WakeUp_Mask(uint16_t maskVal);
 BL_Err_Type HBN_Aon_Pad_Ctrl(uint32_t aonPadCtl1, uint32_t aonPadCtl2);
 BL_Err_Type HBN_Aon_Pad_Cfg(uint8_t aonPadHwCtrlEn, HBN_AON_PAD_Type aonGpio, HBN_AON_PAD_CFG_Type *aonPadCfg);
 BL_Err_Type HBN_Set_IO4041_As_Xtal_32K_IO(uint8_t xtal32kIoEn);

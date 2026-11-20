@@ -37,6 +37,7 @@
 #include "bl808_hbn.h"
 #include "bl808_glb.h"
 #include "bflb_xip_sflash.h"
+#include "bflb_ef_ctrl.h"
 
 /** @addtogroup  BL808_Peripheral_Driver
  *  @{
@@ -921,14 +922,14 @@ BL_Err_Type ATTR_CLOCK_SECTION HBN_Power_Off_RC32K(void)
 *******************************************************************************/
 BL_Err_Type ATTR_CLOCK_SECTION HBN_Trim_RC32K(void)
 {
-    Efuse_Ana_RC32K_Trim_Type trim;
+    bflb_ef_ctrl_com_trim_t trim;
     int32_t tmpVal = 0;
 
-    EF_Ctrl_Read_RC32K_Trim(&trim);
-    if (trim.trimRc32kExtCodeEn) {
-        if (trim.trimRc32kCodeFrExtParity == EF_Ctrl_Get_Trim_Parity(trim.trimRc32kCodeFrExt, 10)) {
+    bflb_ef_ctrl_read_common_trim(NULL, "rc32k", &trim, 1);
+    if (trim.en) {
+        if (trim.parity == bflb_ef_ctrl_get_trim_parity(trim.value, 10)) {
             tmpVal = BL_RD_REG(HBN_BASE, HBN_RC32K_CTRL0);
-            tmpVal = BL_SET_REG_BITS_VAL(tmpVal, HBN_RC32K_CODE_FR_EXT, trim.trimRc32kCodeFrExt);
+            tmpVal = BL_SET_REG_BITS_VAL(tmpVal, HBN_RC32K_CODE_FR_EXT, trim.value);
             tmpVal = BL_SET_REG_BIT(tmpVal, HBN_RC32K_EXT_CODE_EN);
             BL_WR_REG(HBN_BASE, HBN_RC32K_CTRL0, tmpVal);
             arch_delay_us(2);
@@ -1549,7 +1550,7 @@ BL_Err_Type ATTR_TCM_SECTION HBN_Hw_Pu_Pd_Cfg(uint8_t enable)
  * @return SUCCESS or ERROR
  *
 *******************************************************************************/
-BL_Err_Type ATTR_TCM_SECTION HBN_Pin_WakeUp_Mask(uint8_t maskVal)
+BL_Err_Type ATTR_TCM_SECTION HBN_Pin_WakeUp_Mask(uint16_t maskVal)
 {
     uint32_t tmpVal;
 
