@@ -16,6 +16,7 @@ sdk_library_add_sources(src/bl808_glb_gpio.c)
 sdk_library_add_sources(src/bl808_hbn.c)
 sdk_library_add_sources(src/bl808_l1c.c)
 sdk_library_add_sources(src/bl808_pds.c)
+sdk_library_add_sources(src/bl808_pm.c)
 sdk_library_add_sources(src/bl808_sdh.c)
 
 sdk_library_add_sources(src/bl808_tzc_sec.c)
